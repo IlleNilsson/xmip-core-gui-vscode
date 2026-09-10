@@ -1,0 +1,58 @@
+{
+  "name": "xmip",
+  "displayName": "Xmip",
+  "description": "Validates an Xmip node configuration through the runtime itself, as you edit it.",
+  "version": "0.1.0",
+  "publisher": "IlleNilsson",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IlleNilsson/xmip-core-gui-vscode"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.toml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "xmip.validate",
+        "title": "Xmip: Validate node configuration"
+      }
+    ],
+    "configuration": {
+      "title": "Xmip",
+      "properties": {
+        "xmip.server.path": {
+          "type": "string",
+          "default": "xmip-lsp",
+          "description": "The xmip-lsp executable: a name on PATH or a full path. After a cargo build of xmip-core-gui-vscode it is target/debug/xmip-lsp."
+        },
+        "xmip.runtime.library": {
+          "type": "string",
+          "default": "",
+          "description": "The runtime's native library (xmip_core_runtime.dll, .so or .dylib) that validates the configuration. Empty means the server's own lookup: the XMIP_RUNTIME_LIBRARY variable, then the library beside the server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.6.0"
+  }
+}

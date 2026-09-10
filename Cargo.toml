@@ -1,31 +1,37 @@
 # Its own workspace root, so this repository builds on its own.
-#
-# Every module repository carries this and the template did not, which stopped
-# mattering the moment the template stopped sitting beside the estate: nested at
-# template/rust, cargo walked up, found the root workspace and refused to build.
-#
-# It would have bitten a generated repository the same way. A template that does
-# not obey the estate's rules produces repositories that start out breaking
-# them — doc/governance/rust-style.md section 4.
 [workspace]
 
 [package]
-name = "xmip-template-rust"
+name = "xmip-core-gui-vscode"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/IlleNilsson/xmip-template-rust"
-description = "Starter template for a Rust Xmip module repository."
+repository = "https://github.com/IlleNilsson/xmip-core-gui-vscode"
+description = "The VS Code extension, the developer's face of the configuration tool: a TypeScript shell around a Rust language server that validates a node configuration through the ABI (ADR-0014, amendment 2026-09-10). A xmip-core-gui technology."
 publish = false
 
-[lib]
-path = "src/lib.rs"
+# The substance of this repository is the language server; the TypeScript
+# shell in extension/ starts it and shows what it says.
+[[bin]]
+name = "xmip-lsp"
+path = "src/main.rs"
+
+[dependencies]
+# The status constants and the borrowed-string layout of xmip_module.h, so the
+# server declares no struct of its own over the boundary (ADR-0014, amendment
+# of 2026-08-26).
+abi = { package = "xmip-core-abi", git = "https://github.com/IlleNilsson/xmip-core-abi", branch = "main" }
+# Loading the runtime's native library by path: the one route through the
+# C ABI, the same call the desktop GUI makes through Xmip.Abi.
+libloading = "0.8"
+# The messages of the Language Server Protocol are JSON-RPC.
+serde_json = "1"
 
 [lints.rust]
-# forbid, not deny: a module has no business writing unsafe. The one exception
-# in the estate is xmip-core-abi, which holds the extern "C" vtable over
-# include/xmip_module.h and lowers this to deny with a reason at the call site.
-unsafe_code = "forbid"
+# deny, not forbid. The server crosses the C ABI in exactly one file,
+# src/runtime.rs, where loading the library and calling xmip_validate_v1 are
+# unsafe by nature; each site lifts this with its reason. Nothing else may.
+unsafe_code = "deny"
 
 [lints.clippy]
 # Warned, never denied. doc/governance/rust-style.md section 3: a function

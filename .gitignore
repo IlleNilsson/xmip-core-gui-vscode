@@ -73,3 +73,9 @@ Desktop.ini
 *.log
 logs/
 **/logs/
+
+# The extension's Node.js toolchain and its output — this repository is the
+# one place in the estate that has any (ADR-0014, amendment 2026-09-10).
+node_modules/
+extension/out/
+*.vsix
