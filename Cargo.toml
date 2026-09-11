@@ -14,7 +14,8 @@ publish = false
 # shell in extension/ starts it and shows what it says.
 [[bin]]
 name = "xmip-lsp"
-path = "src/main.rs"
+# A directory of many usages keeps its source aside (ADR-0049).
+path = ".src/main.rs"
 
 [dependencies]
 # The status constants and the borrowed-string layout of xmip_module.h, so the
@@ -29,7 +30,7 @@ serde_json = "1"
 
 [lints.rust]
 # deny, not forbid. The server crosses the C ABI in exactly one file,
-# src/runtime.rs, where loading the library and calling xmip_validate_v1 are
+# .src/runtime.rs, where loading the library and calling xmip_validate_v1 are
 # unsafe by nature; each site lifts this with its reason. Nothing else may.
 unsafe_code = "deny"
 

@@ -11,7 +11,7 @@ Two parts, and the second is the substance:
   runtime's path, and shows what comes back. This is the one place in the
   estate where TypeScript or JavaScript lives, and it stays as thin as the
   VS Code extension host allows.
-- `src/` — `xmip-lsp`, a Rust language server over stdio. It loads the
+- `.src/` — `xmip-lsp`, a Rust language server over stdio. It loads the
   runtime's native library and calls `xmip_validate_v1` through
   `xmip_operate.h`: the same call the desktop GUI makes through `Xmip.Abi`,
   and the only route through the boundary. It does not run the `xmip`
