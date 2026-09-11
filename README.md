@@ -35,14 +35,18 @@ succeeds, so the runtime may be built after the editor is open.
 
 The server: `cargo build`, then `cargo test`. The tests cover the framing,
 the diagnostics, the runtime loader and the protocol, and two of them
-validate a sample node through the built runtime.
+validate `../samples/edge-01.xmip.toml` — the node the desktop GUI starts,
+read from the repository beside this one, never copied — through the built
+runtime.
 
-The shell: `npm install` and `npm run compile` in `extension/`, which needs
-Node.js — the only repository in the estate that does. Then point the
-`xmip.server.path` setting at `target/debug/xmip-lsp` and press F5 in
-`extension/` to run it in an Extension Development Host. The shell has no
-logic of its own to test; its correctness is the compile and the server's
-tests.
+The shell: `npm ci`, then `npm run compile`, `npm run lint` and `npm test`
+in `extension/`, which needs Node.js — the only repository in the estate that
+does. The test runs in plain node, offline, with the `vscode` API and the
+language client replaced by recording stubs: it checks that activation
+registers the command and starts the server from the settings, and nothing
+the server does. Then point the `xmip.server.path` setting at
+`target/debug/xmip-lsp` and press F5 in `extension/` to run it in an
+Extension Development Host.
 
 ## Shared governance
 
@@ -50,4 +54,5 @@ Licensing is explicit in [LICENSE](LICENSE). Contribution, security, support,
 issue and pull-request defaults are inherited from
 [IlleNilsson/.github](https://github.com/IlleNilsson/.github) when they are
 not overridden locally. The included workflow is manual-only and verifies the
-Rust half through `IlleNilsson/.github@v1`.
+Rust half through `IlleNilsson/.github@v1` and the TypeScript half with
+`npm ci`, compile, lint and test (ADR-0052 clause 6).

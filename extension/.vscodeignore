@@ -1,3 +1,5 @@
 src/**
+out/test/**
 tsconfig.json
+eslint.config.mjs
 **/*.map

@@ -219,53 +219,17 @@ mod tests {
         }
     }
 
-    /// The node the GUI starts, from the samples beside this repository; the
-    /// runtime's own fixture when the sample is not there.
+    /// The node the GUI starts, `gui/samples/edge-01.xmip.toml` beside this
+    /// repository: one fixture, shared, never copied (ADR-0052). Read at test
+    /// time rather than included, because the sample is only where the built
+    /// runtime is — in the estate — and a checkout of this repository alone
+    /// must still compile its tests.
     fn sample_node() -> String {
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../samples/edge-01.xmip.toml");
 
-        std::fs::read_to_string(sample).unwrap_or_else(|_| FALLBACK_NODE.to_string())
+        std::fs::read_to_string(&sample)
+            .unwrap_or_else(|error| panic!("no sample node at {}: {error}", sample.display()))
     }
-
-    const FALLBACK_NODE: &str = r#"
-[service]
-name = "xmip-edge-01"
-cluster_name = "lab"
-node_name = "edge-01"
-
-[[modules]]
-name = "file"
-start = true
-[modules.manifest.identity]
-name = "file"
-version = "0.1.0"
-[[modules.manifest.capabilities]]
-capability = "transport:file"
-execution_host = "native-rust"
-trusted_required = true
-[modules.manifest.entrypoint]
-library_path = "xmip_core_transport_file"
-symbol = "xmip_create_module_v1"
-
-[[xmip_processes]]
-name = "approval"
-start = true
-required_modules = ["file"]
-xmip_subprocesses = []
-extensions = []
-
-[[receive_locations]]
-name = "orders-in"
-start = true
-transport = "file"
-address = "C:/in"
-
-[[send_locations]]
-name = "billing-out"
-start = true
-transport = "file"
-address = "C:/out"
-"#;
 
     #[test]
     fn the_default_path_is_the_library_beside_the_binary() {

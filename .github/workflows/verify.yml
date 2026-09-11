@@ -7,6 +7,39 @@ on:
 permissions:
   contents: read
 
+# Two languages, two jobs: the server is verified as every Rust repository is,
+# and the shell in extension/ is compiled, linted and tested the same way the
+# landing gate does it (ADR-0052 clause 6).
 jobs:
-  verify:
+  rust:
     uses: IlleNilsson/.github/.github/workflows/rust-verify.yml@v1
+
+  typescript:
+    name: Verify TypeScript shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies from the lock
+        run: npm ci
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
