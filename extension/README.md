@@ -9,4 +9,4 @@ runtime's native library and calls the same validation the Xmip desktop tool
 calls. Point `xmip.server.path` at the server and `xmip.runtime.library` at
 the runtime, or leave the second empty and set `XMIP_RUNTIME_LIBRARY`.
 
-Source and licence: https://github.com/IlleNilsson/xmip-core-gui-vscode
+Source and license: https://github.com/IlleNilsson/xmip-core-gui-vscode
