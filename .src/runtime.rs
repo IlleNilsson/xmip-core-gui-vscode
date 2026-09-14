@@ -18,6 +18,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Mutex, PoisonError};
 
 use abi::ffi::{Str, status};
+use abi::runtime_library;
 use libloading::{Library, Symbol};
 
 /// The export the header names for validation, section 6.
@@ -54,29 +55,6 @@ pub struct Runtime {
 }
 
 static COPIES: AtomicU32 = AtomicU32::new(0);
-
-/// The library's file name on this platform.
-#[must_use]
-pub fn library_file_name() -> &'static str {
-    if cfg!(target_os = "windows") {
-        "xmip_core_runtime.dll"
-    } else if cfg!(target_os = "macos") {
-        "libxmip_core_runtime.dylib"
-    } else {
-        "libxmip_core_runtime.so"
-    }
-}
-
-/// Where the library is looked for when nothing says otherwise: beside the
-/// server's own binary.
-#[must_use]
-pub fn default_path() -> PathBuf {
-    std::env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(Path::to_path_buf))
-        .unwrap_or_default()
-        .join(library_file_name())
-}
 
 impl Runtime {
     /// Load the library at `path`. The reason, in words a developer reads in
@@ -192,7 +170,7 @@ impl Drop for Runtime {
 
 fn temporary_copy_path(path: &Path) -> PathBuf {
     let name = path.file_name().map_or_else(
-        || library_file_name().to_string(),
+        || runtime_library::file_name().to_string(),
         |name| name.to_string_lossy().into_owned(),
     );
     let sequence = COPIES.fetch_add(1, Ordering::Relaxed);
@@ -209,7 +187,7 @@ mod tests {
     fn built_runtime() -> Option<PathBuf> {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../platform/runtime/target/debug")
-            .join(library_file_name());
+            .join(runtime_library::file_name());
 
         if path.is_file() {
             Some(path)
@@ -229,14 +207,6 @@ mod tests {
 
         std::fs::read_to_string(&sample)
             .unwrap_or_else(|error| panic!("no sample node at {}: {error}", sample.display()))
-    }
-
-    #[test]
-    fn the_default_path_is_the_library_beside_the_binary() {
-        let path = default_path();
-
-        assert_eq!(path.file_name().expect("a name"), library_file_name());
-        assert!(path.parent().is_some());
     }
 
     #[test]

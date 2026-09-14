@@ -403,7 +403,7 @@ mod tests {
     fn validate_over_the_built_runtime_returns_the_raw_report() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../platform/runtime/target/debug")
-            .join(crate::runtime::library_file_name());
+            .join(abi::runtime_library::file_name());
 
         if !path.is_file() {
             println!("skipped: no runtime library at {}", path.display());

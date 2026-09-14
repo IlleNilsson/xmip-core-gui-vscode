@@ -7,7 +7,8 @@
 //!
 //! The library path comes from `--runtime <path>`, then the environment
 //! variable `XMIP_RUNTIME_LIBRARY`, then the library's name beside this
-//! binary.
+//! binary — the rule every surface keeps, `abi::runtime_library`, with the
+//! flag standing where a .NET surface reads its configuration key.
 
 mod diagnostic;
 mod framing;
@@ -18,16 +19,12 @@ use std::io::{self, BufReader, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use abi::runtime_library;
 use server::Server;
 
-/// The environment variable naming the runtime library when no flag does.
-const RUNTIME_VARIABLE: &str = "XMIP_RUNTIME_LIBRARY";
-
 fn main() -> ExitCode {
-    let path = match runtime_path(
-        std::env::args().skip(1),
-        std::env::var(RUNTIME_VARIABLE).ok(),
-    ) {
+    let variable = std::env::var(runtime_library::ENVIRONMENT_VARIABLE).ok();
+    let path = match runtime_path(std::env::args().skip(1), variable.as_deref()) {
         Ok(path) => path,
         Err(reason) => {
             eprintln!("{}: {reason}", server::NAME);
@@ -72,27 +69,26 @@ fn serve(mut server: Server) -> io::Result<u8> {
     Ok(u8::from(!server.is_shut_down()))
 }
 
-/// The runtime library path from the arguments, the variable, or the default.
+/// The runtime library path from the arguments, the variable, or beside the
+/// binary (ADR-0052 clause 1).
 ///
 /// # Errors
 /// An argument this server does not take, or `--runtime` with nothing after it.
 fn runtime_path(
     mut arguments: impl Iterator<Item = String>,
-    variable: Option<String>,
+    variable: Option<&str>,
 ) -> Result<PathBuf, String> {
-    let mut path = variable
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from);
+    let mut flag = None;
 
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
             "--runtime" => {
                 let value = arguments.next().ok_or("--runtime needs a path after it")?;
-                path = Some(PathBuf::from(value));
+                flag = Some(PathBuf::from(value));
             }
             "--version" => return Err(format!("{} {}", server::NAME, env!("CARGO_PKG_VERSION"))),
             _ => match argument.strip_prefix("--runtime=") {
-                Some(value) => path = Some(PathBuf::from(value)),
+                Some(value) => flag = Some(PathBuf::from(value)),
                 None => {
                     return Err(format!(
                         "unknown argument {argument}; only --runtime <path>"
@@ -102,7 +98,11 @@ fn runtime_path(
         }
     }
 
-    Ok(path.unwrap_or_else(runtime::default_path))
+    Ok(runtime_library::choose(
+        flag,
+        variable,
+        runtime_library::beside_executable(),
+    ))
 }
 
 #[cfg(test)]
@@ -118,20 +118,20 @@ mod tests {
 
     #[test]
     fn the_flag_wins_over_the_variable_which_wins_over_the_default() {
-        let flag = runtime_path(
-            arguments(&["--runtime", "C:/a.dll"]),
-            Some("C:/b.dll".into()),
-        );
+        let flag = runtime_path(arguments(&["--runtime", "C:/a.dll"]), Some("C:/b.dll"));
         assert_eq!(flag.expect("a path"), PathBuf::from("C:/a.dll"));
 
         let joined = runtime_path(arguments(&["--runtime=C:/c.dll"]), None);
         assert_eq!(joined.expect("a path"), PathBuf::from("C:/c.dll"));
 
-        let variable = runtime_path(arguments(&[]), Some("C:/b.dll".into()));
+        let variable = runtime_path(arguments(&[]), Some("C:/b.dll"));
         assert_eq!(variable.expect("a path"), PathBuf::from("C:/b.dll"));
 
-        let default = runtime_path(arguments(&[]), Some(String::new()));
-        assert_eq!(default.expect("a path"), runtime::default_path());
+        let default = runtime_path(arguments(&[]), Some(""));
+        assert_eq!(
+            default.expect("a path"),
+            runtime_library::beside_executable()
+        );
     }
 
     #[test]
