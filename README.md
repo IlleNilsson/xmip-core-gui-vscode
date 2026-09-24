@@ -3,7 +3,7 @@
 The VS Code extension: the developer's face of the configuration tool, whose
 operator's face is the MAUI desktop application in xmip-core-gui. ADR-0014,
 amendment 2026-09-10. A technology of xmip-core-gui, mounted at
-`module/operation/gui/vscode`.
+`module/core/operation/gui/vscode`.
 
 Two parts, and the second is the substance:
 
