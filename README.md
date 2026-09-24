@@ -14,7 +14,9 @@ Two parts, and the second is the substance:
 - `.src/` — `xmip-lsp`, a Rust language server over stdio. It loads the
   runtime's native library and calls `xmip_validate_v1` through
   `xmip_operate.h`: the same call the desktop GUI makes through `Xmip.Abi`,
-  and the only route through the boundary. It does not run the `xmip`
+  and the only route through the boundary. The symbol's name and shape are
+  `xmip-core-abi`'s (`operate::XMIP_VALIDATE_ENTRYPOINT`, `ValidateFn`),
+  never declared here again. It does not run the `xmip`
   command and does not link the runtime's crates.
 
 ## What it does

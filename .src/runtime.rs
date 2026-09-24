@@ -18,13 +18,13 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Mutex, PoisonError};
 
 use abi::ffi::{Str, status};
+use abi::operate::{ValidateFn, XMIP_VALIDATE_ENTRYPOINT};
 use libloading::{Library, Symbol};
 
-/// The export the header names for validation, section 6.
-pub const ENTRYPOINT: &[u8] = b"xmip_validate_v1\0";
-
-/// `int32_t xmip_validate_v1(XmipStr, uint8_t *, size_t, size_t *)`.
-type ValidateFn = unsafe extern "C" fn(Str, *mut u8, usize, *mut usize) -> i32;
+/// The export the header names for validation, section 6, as the binding
+/// declares it: `xmip-core-abi`'s name and shape, never this crate's own
+/// (open problem 25).
+const ENTRYPOINT: &[u8] = XMIP_VALIDATE_ENTRYPOINT.as_bytes();
 
 /// What one validation answered: the status the header defines and the
 /// report text, one problem per line, empty when the configuration is good.
@@ -88,7 +88,7 @@ impl Runtime {
         // header's, and the first call is where it is trusted.
         if unsafe { library.get::<ValidateFn>(ENTRYPOINT) }.is_err() {
             return Err(format!(
-                "{} does not export xmip_validate_v1",
+                "{} does not export {XMIP_VALIDATE_ENTRYPOINT}",
                 path.display()
             ));
         }
@@ -125,7 +125,7 @@ impl Runtime {
 
         // SAFETY: the export was found at load and the header fixes its type.
         let validate: Symbol<ValidateFn> = unsafe { library.get(ENTRYPOINT) }
-            .map_err(|error| format!("xmip_validate_v1 is gone: {error}"))?;
+            .map_err(|error| format!("{XMIP_VALIDATE_ENTRYPOINT} is gone: {error}"))?;
 
         let text = Str {
             ptr: configuration.as_ptr(),
