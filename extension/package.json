@@ -37,7 +37,7 @@
         "xmip.runtime.library": {
           "type": "string",
           "default": "",
-          "description": "The runtime's native library (xmip_core_runtime.dll, .so or .dylib) that validates the configuration. Empty means the server's own lookup: the XMIP_RUNTIME_LIBRARY variable, then the library beside the server."
+          "description": "The runtime's native library (xmip_core_runtime.dll, .so or .dylib) that validates the configuration. The server finds none on its own: empty means every validation says that no runtime library was named."
         }
       }
     }

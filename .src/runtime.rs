@@ -18,7 +18,6 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Mutex, PoisonError};
 
 use abi::ffi::{Str, status};
-use abi::runtime_library;
 use libloading::{Library, Symbol};
 
 /// The export the header names for validation, section 6.
@@ -170,7 +169,7 @@ impl Drop for Runtime {
 
 fn temporary_copy_path(path: &Path) -> PathBuf {
     let name = path.file_name().map_or_else(
-        || runtime_library::file_name().to_string(),
+        || "runtime".to_string(),
         |name| name.to_string_lossy().into_owned(),
     );
     let sequence = COPIES.fetch_add(1, Ordering::Relaxed);
@@ -181,13 +180,15 @@ fn temporary_copy_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
 
     /// The estate's runtime as `cargo build` leaves it, three levels up from
-    /// this crate. Absent when nobody built it, and that is not a failure.
+    /// this crate, named as the platform names a library. Absent when nobody
+    /// built it, and that is not a failure.
     fn built_runtime() -> Option<PathBuf> {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../platform/runtime/target/debug")
-            .join(runtime_library::file_name());
+            .join(format!("{DLL_PREFIX}xmip_core_runtime{DLL_SUFFIX}"));
 
         if path.is_file() {
             Some(path)

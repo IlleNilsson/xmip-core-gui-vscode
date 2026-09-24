@@ -24,9 +24,13 @@ const INVALID_PARAMS: i64 = -32602;
 /// The runtime library could not be reached; the message says why.
 const RUNTIME_UNAVAILABLE: i64 = -32001;
 
+/// What every validation says when no runtime library was named.
+pub const NOT_NAMED: &str = "no runtime library was named: set xmip.runtime.library to the \
+    runtime's native library, or start the server with --runtime <path>";
+
 /// The server's state between messages.
 pub struct Server {
-    runtime_path: PathBuf,
+    runtime_path: Option<PathBuf>,
     runtime: Option<Runtime>,
     documents: HashMap<String, String>,
     shut_down: bool,
@@ -36,9 +40,11 @@ impl Server {
     /// A server that will load the runtime library at `runtime_path` the
     /// first time a document needs validating — and try again on every
     /// validation until it succeeds, because the developer may build the
-    /// runtime after opening the editor.
+    /// runtime after opening the editor. With no path, every validation says
+    /// that none was named: the server is told where the runtime is and
+    /// finds nothing on its own (ADR-0052, amendment 2026-09-24).
     #[must_use]
-    pub fn new(runtime_path: PathBuf) -> Self {
+    pub fn new(runtime_path: Option<PathBuf>) -> Self {
         Self {
             runtime_path,
             runtime: None,
@@ -191,7 +197,11 @@ impl Server {
 
     fn runtime(&mut self) -> Result<&Runtime, String> {
         if self.runtime.is_none() {
-            let loaded = Runtime::load(&self.runtime_path)?;
+            let path = self
+                .runtime_path
+                .as_ref()
+                .ok_or_else(|| NOT_NAMED.to_string())?;
+            let loaded = Runtime::load(path)?;
             eprintln!("{NAME}: loaded {}", loaded.source().display());
             self.runtime = Some(loaded);
         }
@@ -251,10 +261,11 @@ fn publish_diagnostics(uri: &str, diagnostics: &[Value]) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
 
     /// A server whose runtime is nowhere, so every validation reports that.
     fn server() -> Server {
-        Server::new(PathBuf::from("Z:/no/such/xmip_core_runtime.dll"))
+        Server::new(Some(PathBuf::from("Z:/no/such/xmip_core_runtime.dll")))
     }
 
     fn handle(server: &mut Server, message: &Value) -> (Vec<Value>, Option<i32>) {
@@ -400,17 +411,29 @@ mod tests {
     }
 
     #[test]
+    fn a_server_told_no_runtime_says_so_and_looks_nowhere() {
+        let mut target = Server::new(None);
+        let (out, _) = handle(
+            &mut target,
+            &json!({"id": 7, "method": "xmip/validate", "params": {"text": "[service]\n"}}),
+        );
+
+        assert_eq!(out[0]["error"]["code"], RUNTIME_UNAVAILABLE);
+        assert_eq!(out[0]["error"]["message"], NOT_NAMED);
+    }
+
+    #[test]
     fn validate_over_the_built_runtime_returns_the_raw_report() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../platform/runtime/target/debug")
-            .join(abi::runtime_library::file_name());
+            .join(format!("{DLL_PREFIX}xmip_core_runtime{DLL_SUFFIX}"));
 
         if !path.is_file() {
             println!("skipped: no runtime library at {}", path.display());
             return;
         }
 
-        let mut target = Server::new(path);
+        let mut target = Server::new(Some(path));
         let (out, _) = handle(
             &mut target,
             &json!({"id": 6, "method": "xmip/validate", "params": {"text": "[service]\n"}}),

@@ -5,10 +5,12 @@
 //! `xmip_validate_v1` the desktop GUI calls, reached by loading the runtime's
 //! native library and nothing else.
 //!
-//! The library path comes from `--runtime <path>`, then the environment
-//! variable `XMIP_RUNTIME_LIBRARY`, then the library's name beside this
-//! binary — the rule every surface keeps, `abi::runtime_library`, with the
-//! flag standing where a .NET surface reads its configuration key.
+//! The library is the one `--runtime <path>` names, and nothing else: the
+//! extension passes its `xmip.runtime.library` setting. The server finds no
+//! library on its own. Runtime discovery is one rule, and it is the .NET
+//! surfaces' (`RuntimeLibrary` in `Xmip.Surface`), because a surface must find
+//! the runtime before it can call anything in it; a second writing of that
+//! rule here was a copy, and it went (ADR-0052, amendment 2026-09-24).
 
 mod diagnostic;
 mod framing;
@@ -19,12 +21,10 @@ use std::io::{self, BufReader, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use abi::runtime_library;
 use server::Server;
 
 fn main() -> ExitCode {
-    let variable = std::env::var(runtime_library::ENVIRONMENT_VARIABLE).ok();
-    let path = match runtime_path(std::env::args().skip(1), variable.as_deref()) {
+    let path = match runtime_path(std::env::args().skip(1)) {
         Ok(path) => path,
         Err(reason) => {
             eprintln!("{}: {reason}", server::NAME);
@@ -32,7 +32,10 @@ fn main() -> ExitCode {
         }
     };
 
-    eprintln!("{}: runtime library {}", server::NAME, path.display());
+    match &path {
+        Some(path) => eprintln!("{}: runtime library {}", server::NAME, path.display()),
+        None => eprintln!("{}: {}", server::NAME, server::NOT_NAMED),
+    }
 
     match serve(Server::new(path)) {
         Ok(code) => ExitCode::from(code),
@@ -69,15 +72,11 @@ fn serve(mut server: Server) -> io::Result<u8> {
     Ok(u8::from(!server.is_shut_down()))
 }
 
-/// The runtime library path from the arguments, the variable, or beside the
-/// binary (ADR-0052 clause 1).
+/// The runtime library the arguments name, or `None` when they name none.
 ///
 /// # Errors
 /// An argument this server does not take, or `--runtime` with nothing after it.
-fn runtime_path(
-    mut arguments: impl Iterator<Item = String>,
-    variable: Option<&str>,
-) -> Result<PathBuf, String> {
+fn runtime_path(mut arguments: impl Iterator<Item = String>) -> Result<Option<PathBuf>, String> {
     let mut flag = None;
 
     while let Some(argument) = arguments.next() {
@@ -98,11 +97,7 @@ fn runtime_path(
         }
     }
 
-    Ok(runtime_library::choose(
-        flag,
-        variable,
-        runtime_library::beside_executable(),
-    ))
+    Ok(flag)
 }
 
 #[cfg(test)]
@@ -117,26 +112,19 @@ mod tests {
     }
 
     #[test]
-    fn the_flag_wins_over_the_variable_which_wins_over_the_default() {
-        let flag = runtime_path(arguments(&["--runtime", "C:/a.dll"]), Some("C:/b.dll"));
-        assert_eq!(flag.expect("a path"), PathBuf::from("C:/a.dll"));
+    fn the_flag_names_the_library_and_nothing_else_does() {
+        let flag = runtime_path(arguments(&["--runtime", "C:/a.dll"]));
+        assert_eq!(flag.expect("a path"), Some(PathBuf::from("C:/a.dll")));
 
-        let joined = runtime_path(arguments(&["--runtime=C:/c.dll"]), None);
-        assert_eq!(joined.expect("a path"), PathBuf::from("C:/c.dll"));
+        let joined = runtime_path(arguments(&["--runtime=C:/c.dll"]));
+        assert_eq!(joined.expect("a path"), Some(PathBuf::from("C:/c.dll")));
 
-        let variable = runtime_path(arguments(&[]), Some("C:/b.dll"));
-        assert_eq!(variable.expect("a path"), PathBuf::from("C:/b.dll"));
-
-        let default = runtime_path(arguments(&[]), Some(""));
-        assert_eq!(
-            default.expect("a path"),
-            runtime_library::beside_executable()
-        );
+        assert_eq!(runtime_path(arguments(&[])).expect("no path"), None);
     }
 
     #[test]
     fn a_flag_without_a_path_and_an_unknown_argument_are_refused() {
-        assert!(runtime_path(arguments(&["--runtime"]), None).is_err());
-        assert!(runtime_path(arguments(&["--port", "1"]), None).is_err());
+        assert!(runtime_path(arguments(&["--runtime"])).is_err());
+        assert!(runtime_path(arguments(&["--port", "1"])).is_err());
     }
 }

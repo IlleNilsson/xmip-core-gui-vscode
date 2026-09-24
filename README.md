@@ -24,10 +24,13 @@ own report becomes diagnostics. The command **Xmip: Validate node
 configuration** (`xmip/validate` to the server) prints the whole report to the
 Xmip output channel, with the runtime that produced it.
 
-Where the runtime library is comes from, in order: the `--runtime <path>`
-flag, the `XMIP_RUNTIME_LIBRARY` variable, the library's name beside the
-server binary. The extension passes the flag from its `xmip.runtime.library`
-setting when that is set. The server loads the library the first time a
+The runtime library is the one the `--runtime <path>` flag names, which the
+extension passes from its `xmip.runtime.library` setting; with none named,
+every validation says so. The server finds no library on its own: runtime
+discovery is one rule, the .NET surfaces' `RuntimeLibrary`, because a surface
+has to find the runtime before it can call anything in it, and the copy of
+that rule this server kept in Rust went on 2026-09-24 (ADR-0052, amendment of
+that date). The server loads the library the first time a
 document needs validating and tries again on every validation until it
 succeeds, so the runtime may be built after the editor is open.
 
