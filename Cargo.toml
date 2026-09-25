@@ -27,6 +27,11 @@ abi = { package = "xmip-core-abi", git = "https://github.com/IlleNilsson/xmip-co
 libloading = "0.8"
 # The messages of the Language Server Protocol are JSON-RPC.
 serde_json = "1"
+# What the server started, stopped, did to the runtime and failed at, recorded
+# through the one audit capability, with xmip-core's phase and severity
+# (ADR-0062).
+xaudit = { package = "xmip-core-audit", git = "https://github.com/IlleNilsson/xmip-core-audit", branch = "main" }
+xcore = { package = "xmip-core", git = "https://github.com/IlleNilsson/xmip-core", branch = "main" }
 
 [lints.rust]
 # deny, not forbid. The server crosses the C ABI in exactly one file,

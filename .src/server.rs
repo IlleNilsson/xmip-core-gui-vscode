@@ -5,14 +5,24 @@
 //! synchronisation — because validation needs the whole text and a node
 //! configuration is small. Only documents named `.toml` are validated; the
 //! rest are held and never reported on.
+//!
+//! What it does to the runtime is audited (ADR-0062): a library loaded as
+//! `load-runtime`, and a library that could not be loaded or a validation
+//! the runtime could not answer as a failure of `load-runtime` or `validate`
+//! — once per reason, because the server retries on every keystroke and the
+//! same reason a hundred times is one failure.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
+use xaudit::AuditError;
+use xaudit::emit::AuditOutcome;
+use xaudit::program_audit::ProgramAudit;
+use xcore::{ExecutionPhase, Severity};
 
 use crate::diagnostic;
-use crate::runtime::Runtime;
+use crate::runtime::{Runtime, Validation};
 
 /// The name the server reports to the client.
 pub const NAME: &str = "xmip-lsp";
@@ -34,6 +44,10 @@ pub struct Server {
     runtime: Option<Runtime>,
     documents: HashMap<String, String>,
     shut_down: bool,
+    audit: ProgramAudit,
+    /// The last failure audited, so one repeated on every validation is
+    /// recorded once; cleared when the runtime loads.
+    audited: Option<String>,
 }
 
 impl Server {
@@ -42,14 +56,17 @@ impl Server {
     /// validation until it succeeds, because the developer may build the
     /// runtime after opening the editor. With no path, every validation says
     /// that none was named: the server is told where the runtime is and
-    /// finds nothing on its own (ADR-0052, amendment 2026-09-24).
+    /// finds nothing on its own (ADR-0052, amendment 2026-09-24). What it
+    /// does to the runtime is recorded in `audit`.
     #[must_use]
-    pub fn new(runtime_path: Option<PathBuf>) -> Self {
+    pub fn new(runtime_path: Option<PathBuf>, audit: ProgramAudit) -> Self {
         Self {
             runtime_path,
             runtime: None,
             documents: HashMap::new(),
             shut_down: false,
+            audit,
+            audited: None,
         }
     }
 
@@ -172,43 +189,89 @@ impl Server {
             );
         };
 
-        match self.runtime() {
-            Ok(runtime) => match runtime.validate(&text) {
-                Ok(validation) => response(
-                    id,
-                    &json!({
-                        "status": validation.status,
-                        "valid": validation.is_valid(),
-                        "report": validation.report,
-                        "runtime": runtime.source().display().to_string(),
-                    }),
-                ),
-                Err(reason) => error(id, RUNTIME_UNAVAILABLE, &reason),
-            },
+        match self.validated(&text) {
+            Ok((validation, source)) => response(
+                id,
+                &json!({
+                    "status": validation.status,
+                    "valid": validation.is_valid(),
+                    "report": validation.report,
+                    "runtime": source.display().to_string(),
+                }),
+            ),
             Err(reason) => error(id, RUNTIME_UNAVAILABLE, &reason),
         }
     }
 
     fn validate(&mut self, text: &str) -> Result<String, String> {
-        self.runtime()?
-            .validate(text)
-            .map(|validation| validation.report)
+        self.validated(text)
+            .map(|(validation, _)| validation.report)
+    }
+
+    /// What the runtime said of `text`, and the library that said it; a
+    /// runtime that could not answer is audited as the failure to `validate`.
+    fn validated(&mut self, text: &str) -> Result<(Validation, PathBuf), String> {
+        let runtime = self.runtime()?;
+        let source = runtime.source().to_path_buf();
+        let answered = runtime.validate(text);
+
+        match answered {
+            Ok(validation) => Ok((validation, source)),
+            Err(reason) => {
+                self.failed("validate", &reason);
+                Err(reason)
+            }
+        }
     }
 
     fn runtime(&mut self) -> Result<&Runtime, String> {
         if self.runtime.is_none() {
-            let path = self
+            let loading = self
                 .runtime_path
                 .as_ref()
-                .ok_or_else(|| NOT_NAMED.to_string())?;
-            let loaded = Runtime::load(path)?;
-            eprintln!("{NAME}: loaded {}", loaded.source().display());
+                .ok_or_else(|| NOT_NAMED.to_string())
+                .and_then(|path| Runtime::load(path));
+            let loaded = match loading {
+                Ok(loaded) => loaded,
+                Err(reason) => {
+                    self.failed("load-runtime", &reason);
+                    return Err(reason);
+                }
+            };
+            let library = loaded.source().display().to_string();
+            eprintln!("{NAME}: loaded {library}");
+            kept(self.audit.record(
+                "load-runtime",
+                ExecutionPhase::Finished,
+                Severity::Information,
+                None,
+                BTreeMap::from([("library".to_string(), library)]),
+            ));
+            self.audited = None;
             self.runtime = Some(loaded);
         }
 
         self.runtime
             .as_ref()
             .ok_or_else(|| "no runtime".to_string())
+    }
+
+    /// Audit `reason` as the failure of `action`, unless it is the failure
+    /// audited last.
+    fn failed(&mut self, action: &str, reason: &str) {
+        if self.audited.as_deref() == Some(reason) {
+            return;
+        }
+        self.audited = Some(reason.to_string());
+        kept(self.audit.failed(action, reason));
+    }
+}
+
+/// A record neither the audit sink nor the operating system's log kept is
+/// said on stderr, which the editor shows in the server's output channel.
+pub fn kept(outcome: Result<AuditOutcome, AuditError>) {
+    if let Err(error) = outcome {
+        eprintln!("{NAME}: audit: {error}");
     }
 }
 
@@ -263,9 +326,25 @@ mod tests {
     use super::*;
     use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
 
+    const NOWHERE: &str = "Z:/no/such/xmip_core_runtime.dll";
+
+    /// An audit into a directory of the test's own, so a test never writes
+    /// to the operating system's log. Numbered, because tests run at once
+    /// and one clearing another's directory sent a record to that log.
+    fn audit(name: &str) -> ProgramAudit {
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let number = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!(
+            "xmip-lsp-audit-{name}-{}-{number}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&directory);
+        ProgramAudit::new(NAME, Some(&directory))
+    }
+
     /// A server whose runtime is nowhere, so every validation reports that.
     fn server() -> Server {
-        Server::new(Some(PathBuf::from("Z:/no/such/xmip_core_runtime.dll")))
+        Server::new(Some(PathBuf::from(NOWHERE)), audit("server"))
     }
 
     fn handle(server: &mut Server, message: &Value) -> (Vec<Value>, Option<i32>) {
@@ -412,7 +491,7 @@ mod tests {
 
     #[test]
     fn a_server_told_no_runtime_says_so_and_looks_nowhere() {
-        let mut target = Server::new(None);
+        let mut target = Server::new(None, audit("none"));
         let (out, _) = handle(
             &mut target,
             &json!({"id": 7, "method": "xmip/validate", "params": {"text": "[service]\n"}}),
@@ -420,6 +499,29 @@ mod tests {
 
         assert_eq!(out[0]["error"]["code"], RUNTIME_UNAVAILABLE);
         assert_eq!(out[0]["error"]["message"], NOT_NAMED);
+    }
+
+    /// ADR-0062: a runtime that cannot be loaded is audited, and the retry
+    /// every validation makes is not a new failure each time.
+    #[test]
+    fn a_runtime_that_cannot_be_loaded_is_audited_once_per_reason() {
+        let audit = audit("unloadable");
+        let mut target = Server::new(Some(PathBuf::from(NOWHERE)), audit.clone());
+        for id in 0..3 {
+            let request = json!({"id": id, "method": "xmip/validate", "params": {"text": "x"}});
+            handle(&mut target, &request);
+        }
+
+        let file = audit.file().expect("a file sink");
+        let text = std::fs::read_to_string(&file).expect("the failure was recorded");
+        assert_eq!(
+            text.matches("action = \"load-runtime\"").count(),
+            1,
+            "{text}"
+        );
+        assert!(text.contains("phase = \"failure\""), "{text}");
+        assert!(text.contains("no runtime library at"), "{text}");
+        let _ = std::fs::remove_dir_all(file.parent().expect("a directory"));
     }
 
     #[test]
@@ -433,7 +535,7 @@ mod tests {
             return;
         }
 
-        let mut target = Server::new(Some(path));
+        let mut target = Server::new(Some(path), audit("built"));
         let (out, _) = handle(
             &mut target,
             &json!({"id": 6, "method": "xmip/validate", "params": {"text": "[service]\n"}}),

@@ -36,6 +36,16 @@ that date). The server loads the library the first time a
 document needs validating and tries again on every validation until it
 succeeds, so the runtime may be built after the editor is open.
 
+The server audits through `xmip-core-audit` as `xmip-lsp` (ADR-0062):
+`start` with the library it was told, `stop` with its exit code, a library
+loaded as `load-runtime`, and as failures a refused argument (`start`), a
+library that could not be loaded (`load-runtime`), a validation the runtime
+could not answer (`validate`), a broken stdio stream (`serve`) and every
+panic (`unhandled`). A failure the server retries on every keystroke is
+recorded once per reason. The records go to `audit.toml` in
+`XMIP_AUDIT_DIRECTORY`, or to the operating system's log where none is set;
+the audit capability writes every one.
+
 ## Building
 
 The server: `cargo build`, then `cargo test`. The tests cover the framing,

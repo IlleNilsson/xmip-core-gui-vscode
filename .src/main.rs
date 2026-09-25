@@ -11,36 +11,73 @@
 //! surfaces' (`RuntimeLibrary` in `Xmip.Surface`), because a surface must find
 //! the runtime before it can call anything in it; a second writing of that
 //! rule here was a copy, and it went (ADR-0052, amendment 2026-09-24).
+//!
+//! **It audits** (ADR-0062) through `xmip-core-audit`, as `xmip-lsp`: `start`
+//! with the library it was told, `stop` with the exit code (a warning when
+//! the client left without a shutdown), a refused argument as the failure to
+//! `start`, a broken stdio stream as the failure to `serve`, every panic as
+//! `unhandled`, and what `server.rs` does to the runtime. The records go to
+//! `XMIP_AUDIT_DIRECTORY`, else the operating system's log.
 
 mod diagnostic;
 mod framing;
 mod runtime;
 mod server;
 
+use std::collections::BTreeMap;
 use std::io::{self, BufReader, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use server::Server;
+use server::{Server, kept};
+use xaudit::program_audit::ProgramAudit;
+use xcore::{ExecutionPhase, Severity};
 
 fn main() -> ExitCode {
+    let audit = ProgramAudit::new(server::NAME, None);
+    audit.watch_panics();
+
     let path = match runtime_path(std::env::args().skip(1)) {
         Ok(path) => path,
         Err(reason) => {
             eprintln!("{}: {reason}", server::NAME);
+            kept(audit.failed("start", &reason));
             return ExitCode::from(2);
         }
     };
 
-    match &path {
-        Some(path) => eprintln!("{}: runtime library {}", server::NAME, path.display()),
-        None => eprintln!("{}: {}", server::NAME, server::NOT_NAMED),
-    }
+    let library = if let Some(path) = &path {
+        eprintln!("{}: runtime library {}", server::NAME, path.display());
+        path.display().to_string()
+    } else {
+        eprintln!("{}: {}", server::NAME, server::NOT_NAMED);
+        "none named".to_string()
+    };
+    let told = BTreeMap::from([("library".to_string(), library)]);
+    kept(audit.record(
+        "start",
+        ExecutionPhase::Begin,
+        Severity::Information,
+        None,
+        told,
+    ));
 
-    match serve(Server::new(path)) {
-        Ok(code) => ExitCode::from(code),
+    match serve(Server::new(path, audit.clone())) {
+        Ok(code) => {
+            // Exit without a shutdown is 1, which the protocol allows and
+            // which is worth a reader's notice, not an error.
+            let severity = if code == 0 {
+                Severity::Information
+            } else {
+                Severity::Warning
+            };
+            let exit = BTreeMap::from([("exit".to_string(), code.to_string())]);
+            kept(audit.record("stop", ExecutionPhase::Finished, severity, None, exit));
+            ExitCode::from(code)
+        }
         Err(error) => {
             eprintln!("{}: {error}", server::NAME);
+            kept(audit.failed("serve", &error.to_string()));
             ExitCode::from(1)
         }
     }
