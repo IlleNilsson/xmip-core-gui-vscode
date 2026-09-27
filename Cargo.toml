@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/IlleNilsson/xmip-core-gui-vscode"
-description = "The VS Code extension, the developer's face of the configuration tool: a TypeScript shell around a Rust language server that validates a node configuration through the ABI (ADR-0014, amendment 2026-09-10). A xmip-core-gui technology."
+description = "The VS Code extension, the developer's face of the configuration tool: a TypeScript shell around a Rust language server that validates a node configuration or an Xmip Application through the ABI (ADR-0014, amendment 2026-09-10) and draws an Application's routes in a designer (ADR-0064). A xmip-core-gui technology."
 publish = false
 
 # The substance of this repository is the language server; the TypeScript
@@ -52,3 +52,6 @@ missing_errors_doc = "warn"
 missing_panics_doc = "warn"
 unwrap_used = "warn"
 expect_used = "allow"
+
+[profile.dev.package."*"]
+opt-level = 3

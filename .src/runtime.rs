@@ -1,23 +1,27 @@
-//! The runtime's native library, loaded by path and asked to validate.
+//! The runtime's native library, loaded by path and asked to validate and
+//! to answer the designer.
 //!
-//! This is the server's one route to Xmip: `xmip_validate_v1` as
-//! `include/xmip_operate.h` declares it, reached through the C ABI exactly as
-//! the desktop GUI reaches it through `Xmip.Abi` (ADR-0014, amendment
-//! 2026-09-10). The server does not link the runtime's crates and the
-//! extension does not run the `xmip` command; the boundary is the header, and
-//! this file is the only one that crosses it, so it is the only one that
-//! lifts the crate's `deny(unsafe_code)`.
+//! This is the server's one route to Xmip: `xmip_validate_v1` and section
+//! 10's designer exports (ADR-0064) as `include/xmip_operate.h` declares
+//! them, reached through the C ABI exactly as the desktop GUI reaches it
+//! through `Xmip.Abi` (ADR-0014, amendment 2026-09-10). The server does not
+//! link the runtime's crates and the extension does not run the `xmip`
+//! command; the boundary is the header, and this file is the only one that
+//! crosses it, so it is the only one that lifts the crate's
+//! `deny(unsafe_code)`.
 //!
 //! The shape mirrors `Operator.cs` in the .NET binding: the library is copied
 //! to a temporary file before it is loaded, one call is made at a time, and
-//! the report is asked for twice — once for its length, once for its text —
-//! so nothing is truncated silently.
+//! an answer that does not fit the room given is asked for again at its
+//! true length, so nothing is truncated silently.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Mutex, PoisonError};
 
 use abi::ffi::{Str, status};
+use abi::operate::catalogue::{CatalogueFn, TECHNOLOGY_CATALOGUE_ENTRYPOINT};
+use abi::operate::design::DesignFn;
 use abi::operate::{ValidateFn, XMIP_VALIDATE_ENTRYPOINT};
 use libloading::{Library, Symbol};
 
@@ -42,6 +46,14 @@ impl Validation {
     pub fn is_valid(&self) -> bool {
         self.status == status::OK
     }
+}
+
+/// What a designer export answered: `XMIP_OK` and its answer, or
+/// `XMIP_E_INVALID` and the refusal, one sentence.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Answer {
+    pub status: i32,
+    pub text: String,
 }
 
 /// A loaded runtime library. Dropping it unloads the library and removes the
@@ -127,36 +139,112 @@ impl Runtime {
         let validate: Symbol<ValidateFn> = unsafe { library.get(ENTRYPOINT) }
             .map_err(|error| format!("{XMIP_VALIDATE_ENTRYPOINT} is gone: {error}"))?;
 
-        let text = Str {
-            ptr: configuration.as_ptr(),
-            len: configuration.len(),
-        };
-        let mut needed = 0usize;
+        let text = borrowed(configuration);
 
-        // SAFETY: `text` borrows `configuration` for the call; a null report
-        // with capacity 0 asks only for the length, as the header allows.
-        let status = unsafe { validate(text, std::ptr::null_mut(), 0, &raw mut needed) };
+        // SAFETY: `text` borrows `configuration` for the call; `asked` hands
+        // over a buffer and its true capacity, as the header requires.
+        let (status, report) =
+            asked(|out, cap, needed| unsafe { validate(text, out, cap, needed) });
 
-        if needed == 0 {
-            return Ok(Validation {
-                status,
-                report: String::new(),
-            });
-        }
-
-        let mut report = vec![0u8; needed];
-
-        // SAFETY: `report` has room for exactly `needed` bytes and `needed`
-        // is writable; the runtime writes at most the capacity it is given.
-        let status = unsafe { validate(text, report.as_mut_ptr(), report.len(), &raw mut needed) };
-
-        report.truncate(needed.min(report.len()));
-
-        Ok(Validation {
-            status,
-            report: String::from_utf8_lossy(&report).into_owned(),
-        })
+        Ok(Validation { status, report })
     }
+
+    /// Ask one of section 10's exports: `input`, and `argument` where the
+    /// export takes one, in; its answer or its refusal back.
+    ///
+    /// # Errors
+    /// When the library is unloaded or does not export `entrypoint` — a
+    /// runtime built before the designer existed.
+    // The call itself, as for validate: two borrowed strings in, a buffer
+    // and its capacity out, the contract xmip_operate.h section 10 states.
+    #[allow(unsafe_code)]
+    pub fn design(&self, entrypoint: &str, input: &str, argument: &str) -> Result<Answer, String> {
+        let _held = self.gate.lock().unwrap_or_else(PoisonError::into_inner);
+        let library = self
+            .library
+            .as_ref()
+            .ok_or("the runtime library is unloaded")?;
+
+        // SAFETY: the header fixes the type of every section 10 export.
+        let design: Symbol<DesignFn> =
+            unsafe { library.get(entrypoint.as_bytes()) }.map_err(|_| {
+                format!(
+                    "{} does not export {entrypoint}: build the runtime again for the designer",
+                    self.source.display()
+                )
+            })?;
+        let (input, argument) = (borrowed(input), borrowed(argument));
+
+        // SAFETY: both texts borrow for the call; `asked` hands over a buffer
+        // and its true capacity, as the header requires.
+        let (status, text) =
+            asked(|out, cap, needed| unsafe { design(input, argument, out, cap, needed) });
+
+        Ok(Answer { status, text })
+    }
+
+    /// Ask section 12's export for the technologies the runtime carries and
+    /// the settings each declares (ADR-0064, amendment 2026-09-26): every
+    /// one when `technology` is empty, that one alone otherwise.
+    ///
+    /// # Errors
+    /// When the library is unloaded or does not export the catalogue — a
+    /// runtime built before the technologies declared their settings.
+    // The call itself: a borrowed name in, a buffer and its capacity out,
+    // the contract xmip_operate.h section 12 states.
+    #[allow(unsafe_code)]
+    pub fn catalogue(&self, technology: &str) -> Result<Answer, String> {
+        let _held = self.gate.lock().unwrap_or_else(PoisonError::into_inner);
+        let library = self
+            .library
+            .as_ref()
+            .ok_or("the runtime library is unloaded")?;
+
+        // SAFETY: the header fixes the export's type.
+        let catalogue: Symbol<CatalogueFn> =
+            unsafe { library.get(TECHNOLOGY_CATALOGUE_ENTRYPOINT.as_bytes()) }.map_err(|_| {
+                format!(
+                    "{} does not export {TECHNOLOGY_CATALOGUE_ENTRYPOINT}: build the runtime again",
+                    self.source.display()
+                )
+            })?;
+        let technology = borrowed(technology);
+
+        // SAFETY: the name borrows for the call; `asked` hands over a buffer
+        // and its true capacity, as the header requires.
+        let (status, text) =
+            asked(|out, cap, needed| unsafe { catalogue(technology, out, cap, needed) });
+
+        Ok(Answer { status, text })
+    }
+}
+
+fn borrowed(text: &str) -> Str {
+    Str {
+        ptr: text.as_ptr(),
+        len: text.len(),
+    }
+}
+
+/// Room for what a design or a report is in practice, so one call answers.
+const ROOM: usize = 64 * 1024;
+
+/// The header's text shape, asked so nothing is truncated: once with room
+/// for what an answer usually is, and again with room for its true length
+/// only when it did not fit — every call does the whole work again, and a
+/// second one doubles what the developer waits for.
+fn asked(call: impl Fn(*mut u8, usize, *mut usize) -> i32) -> (i32, String) {
+    let mut text = vec![0u8; ROOM];
+    let mut needed = 0usize;
+    let mut status = call(text.as_mut_ptr(), text.len(), &raw mut needed);
+
+    if needed > text.len() {
+        text.resize(needed, 0);
+        status = call(text.as_mut_ptr(), text.len(), &raw mut needed);
+    }
+    text.truncate(needed.min(text.len()));
+
+    (status, String::from_utf8_lossy(&text).into_owned())
 }
 
 impl Drop for Runtime {
@@ -182,12 +270,12 @@ mod tests {
     use super::*;
     use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
 
-    /// The estate's runtime as `cargo build` leaves it, three levels up from
+    /// The estate's runtime as `cargo build` leaves it, four levels up from
     /// this crate, named as the platform names a library. Absent when nobody
     /// built it, and that is not a failure.
     fn built_runtime() -> Option<PathBuf> {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../platform/runtime/target/debug")
+            .join("../../../../platform/runtime/target/debug")
             .join(format!("{DLL_PREFIX}xmip_core_runtime{DLL_SUFFIX}"));
 
         if path.is_file() {

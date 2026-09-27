@@ -1,7 +1,7 @@
 {
   "name": "xmip",
   "displayName": "Xmip",
-  "description": "Validates an Xmip node configuration through the runtime itself, as you edit it.",
+  "description": "Validates an Xmip node configuration or Xmip Application through the runtime itself, as you edit it, and draws an Application's routes in a designer.",
   "version": "0.1.0",
   "publisher": "IlleNilsson",
   "license": "AGPL-3.0-or-later",
@@ -13,10 +13,12 @@
     "vscode": "^1.95.0"
   },
   "categories": [
-    "Linters"
+    "Linters",
+    "Visualization"
   ],
   "activationEvents": [
-    "workspaceContains:**/*.toml"
+    "workspaceContains:**/*.toml",
+    "onCustomEditor:xmip.applicationDesigner"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -24,6 +26,22 @@
       {
         "command": "xmip.validate",
         "title": "Xmip: Validate node configuration"
+      },
+      {
+        "command": "xmip.openDesigner",
+        "title": "Xmip: Open in the Application designer"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "xmip.applicationDesigner",
+        "displayName": "Xmip Application designer",
+        "selector": [
+          {
+            "filenamePattern": "*.toml"
+          }
+        ],
+        "priority": "option"
       }
     ],
     "configuration": {
@@ -43,9 +61,9 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && tsc -p ./webview",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src",
+    "lint": "eslint src webview",
     "pretest": "npm run compile",
     "test": "node --test \"out/test/**/*.test.js\"",
     "vscode:prepublish": "npm run compile"

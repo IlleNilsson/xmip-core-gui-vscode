@@ -40,6 +40,8 @@ class FakeClient {
 
 const clients: FakeClient[] = [];
 const commands = new Map<string, () => unknown>();
+const editors = new Map<string, unknown>();
+const executed: unknown[][] = [];
 const settings = new Map<string, string>();
 const messages: string[] = [];
 const disposable = { dispose(): void {} };
@@ -52,11 +54,19 @@ const stubVscode = {
       messages.push(message);
       return Promise.resolve(undefined);
     },
+    registerCustomEditorProvider: (viewType: string, provider: unknown) => {
+      editors.set(viewType, provider);
+      return disposable;
+    },
   },
   commands: {
     registerCommand: (command: string, callback: () => unknown) => {
       commands.set(command, callback);
       return disposable;
+    },
+    executeCommand: (...command: unknown[]) => {
+      executed.push(command);
+      return Promise.resolve(undefined);
     },
   },
   workspace: {
@@ -87,7 +97,10 @@ loader._load = function (request: string, ...rest: unknown[]): unknown {
   return load.call(this, request, ...rest);
 };
 
-const context = { subscriptions: [] as { dispose(): void }[] };
+const context = {
+  subscriptions: [] as { dispose(): void }[],
+  extensionUri: { path: "/extension" },
+};
 
 async function extension(): Promise<typeof import("../extension.js")> {
   return import("../extension.js");
@@ -101,6 +114,8 @@ void test("activation registers the command and starts the server from the setti
   await activate(context as unknown as vscode.ExtensionContext);
 
   assert.ok(commands.has("xmip.validate"), "xmip.validate is registered");
+  assert.ok(commands.has("xmip.openDesigner"), "xmip.openDesigner is registered");
+  assert.ok(editors.has("xmip.applicationDesigner"), "the routes designer is registered");
   assert.equal(clients.length, 1);
   assert.equal(clients[0]?.id, "xmip");
   assert.equal(clients[0]?.server.command, "C:/xmip/target/debug/xmip-lsp.exe");
@@ -135,4 +150,14 @@ void test("the command with no editor open says so instead of validating", async
   await validate();
 
   assert.deepEqual(messages, ["Xmip: open a node configuration first."]);
+});
+
+void test("the designer command with no editor open says so instead of opening", async () => {
+  const open = commands.get("xmip.openDesigner");
+  assert.ok(open, "the command is registered");
+
+  await open();
+
+  assert.equal(messages.at(-1), "Xmip: open an Xmip Application first.");
+  assert.deepEqual(executed, []);
 });

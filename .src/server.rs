@@ -3,8 +3,10 @@
 //! A message in, zero or more messages out, and the process ends when the
 //! client says so. Documents are held whole — the server asks for full
 //! synchronisation — because validation needs the whole text and a node
-//! configuration is small. Only documents named `.toml` are validated; the
-//! rest are held and never reported on.
+//! configuration or an Xmip Application is small. Only documents named
+//! `.toml` are validated, and the runtime tells the two apart; the rest are
+//! held and never reported on. The routes designer's requests are
+//! `designer.rs`'s (ADR-0064).
 //!
 //! What it does to the runtime is audited (ADR-0062): a library loaded as
 //! `load-runtime`, and a library that could not be loaded or a validation
@@ -21,8 +23,10 @@ use xaudit::emit::AuditOutcome;
 use xaudit::program_audit::ProgramAudit;
 use xcore::{ExecutionPhase, Severity};
 
+use crate::designer::{self, Unanswered};
 use crate::diagnostic;
 use crate::runtime::{Runtime, Validation};
+use crate::settings;
 
 /// The name the server reports to the client.
 pub const NAME: &str = "xmip-lsp";
@@ -33,6 +37,8 @@ const METHOD_NOT_FOUND: i64 = -32601;
 const INVALID_PARAMS: i64 = -32602;
 /// The runtime library could not be reached; the message says why.
 const RUNTIME_UNAVAILABLE: i64 = -32001;
+/// The runtime refused what the designer asked; the message is its sentence.
+const REFUSED: i64 = -32002;
 
 /// What every validation says when no runtime library was named.
 pub const NOT_NAMED: &str = "no runtime library was named: set xmip.runtime.library to the \
@@ -96,6 +102,12 @@ impl Server {
             "textDocument/didSave" => self.saved(params, out),
             "textDocument/didClose" => self.closed(params, out),
             "xmip/validate" => out.push(self.validate_request(id, params)),
+            method if settings::METHODS.contains(&method) => {
+                out.push(self.settings_request(method, id, params));
+            }
+            method if designer::METHODS.contains(&method) => {
+                out.push(self.design_request(method, id, params));
+            }
             _ => {
                 if let Some(id) = id {
                     let reason = format!("{method} is not a method xmip-lsp handles");
@@ -203,6 +215,54 @@ impl Server {
         }
     }
 
+    /// One of the routes designer's requests (ADR-0064), over the text in
+    /// the params or the document the params name.
+    fn design_request(&mut self, method: &str, id: Option<&Value>, params: &Value) -> Value {
+        let document = params["text"]
+            .as_str()
+            .map(str::to_string)
+            .or_else(|| self.documents.get(&uri_of(params)).cloned());
+        let answered = match self.runtime() {
+            Ok(runtime) => designer::answer(runtime, method, params, document.as_deref()),
+            Err(reason) => return error(id, RUNTIME_UNAVAILABLE, &reason),
+        };
+
+        match answered {
+            Ok(result) => response(id, &result),
+            Err(Unanswered::Params(reason)) => error(id, INVALID_PARAMS, &reason),
+            Err(Unanswered::Refused(reason)) => error(id, REFUSED, &reason),
+            Err(Unanswered::Unavailable(reason)) => {
+                self.failed("design", &reason);
+                error(id, RUNTIME_UNAVAILABLE, &reason)
+            }
+        }
+    }
+
+    /// A Location's settings in the editor (`settings.rs`, ADR-0064
+    /// amendment 2026-09-26): completion, hover and `xmip/technologies`,
+    /// over the document the params name.
+    fn settings_request(&mut self, method: &str, id: Option<&Value>, params: &Value) -> Value {
+        let document = self.documents.get(&uri_of(params)).cloned();
+        let answered = match self.runtime() {
+            Ok(runtime) => settings::answer(runtime, method, params, document.as_deref()),
+            Err(reason) => Err(Unanswered::Unavailable(reason)),
+        };
+
+        match answered {
+            Ok(result) => response(id, &result),
+            Err(unanswered) => match settings::quiet(method) {
+                // A completion or a hover the runtime cannot serve offers
+                // nothing; the diagnostics already say why.
+                Some(nothing) => response(id, &nothing),
+                None => match unanswered {
+                    Unanswered::Params(reason) => error(id, INVALID_PARAMS, &reason),
+                    Unanswered::Refused(reason) => error(id, REFUSED, &reason),
+                    Unanswered::Unavailable(reason) => error(id, RUNTIME_UNAVAILABLE, &reason),
+                },
+            },
+        }
+    }
+
     fn validate(&mut self, text: &str) -> Result<String, String> {
         self.validated(text)
             .map(|(validation, _)| validation.report)
@@ -283,6 +343,8 @@ fn initialize_result() -> Value {
                 "change": 1,
                 "save": { "includeText": true },
             },
+            "completionProvider": { "triggerCharacters": ["\""] },
+            "hoverProvider": true,
         },
         "serverInfo": { "name": NAME, "version": env!("CARGO_PKG_VERSION") },
     })
@@ -387,7 +449,7 @@ mod tests {
         let mut target = server();
         let (out, _) = handle(
             &mut target,
-            &json!({"id": 3, "method": "textDocument/hover"}),
+            &json!({"id": 3, "method": "textDocument/definition"}),
         );
 
         assert_eq!(out[0]["error"]["code"], METHOD_NOT_FOUND);
@@ -527,7 +589,7 @@ mod tests {
     #[test]
     fn validate_over_the_built_runtime_returns_the_raw_report() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../platform/runtime/target/debug")
+            .join("../../../../platform/runtime/target/debug")
             .join(format!("{DLL_PREFIX}xmip_core_runtime{DLL_SUFFIX}"));
 
         if !path.is_file() {

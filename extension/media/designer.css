@@ -1,0 +1,201 @@
+/* The routes designer's page (ADR-0064), in the editor's own theme: every
+   color is one VS Code gives the webview, so the designer is light, dark or
+   high contrast as the editor is. */
+
+body {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+#bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+#bar h1 {
+  font-size: 1.1em;
+  margin: 0 12px 0 0;
+}
+
+.label {
+  color: var(--vscode-descriptionForeground);
+  margin-left: 8px;
+}
+
+input,
+select,
+textarea {
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 2px 4px;
+}
+
+button {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border: none;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#said {
+  min-height: 1.2em;
+  margin: 6px 0;
+  color: var(--vscode-descriptionForeground);
+}
+
+#said.refused {
+  color: var(--vscode-errorForeground);
+}
+
+main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+#canvas {
+  flex: 0 0 auto;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+#side {
+  flex: 1 1 360px;
+  min-width: 360px;
+  max-width: 560px;
+}
+
+.node rect {
+  fill: var(--vscode-editorWidget-background);
+  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  stroke-width: 1;
+}
+
+.node {
+  cursor: pointer;
+}
+
+.node.subscription rect {
+  stroke-dasharray: 4 2;
+}
+
+.node.selected rect {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+.node.reachable rect {
+  stroke: var(--vscode-focusBorder);
+}
+
+.node:focus {
+  outline: none;
+}
+
+.node:focus rect {
+  stroke-width: 2;
+}
+
+.node text {
+  fill: var(--vscode-foreground);
+}
+
+.node .caption {
+  fill: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+}
+
+.node .name {
+  font-weight: 600;
+}
+
+.node .summary {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.85em;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--vscode-foreground);
+  stroke-width: 1.5;
+}
+
+.edge.publishes {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+}
+
+.edge.gathers {
+  stroke-dasharray: 6 3;
+}
+
+.arrowhead {
+  fill: var(--vscode-foreground);
+}
+
+.group {
+  border: 1px solid var(--vscode-panel-border);
+  margin: 4px 0;
+  padding: 4px 8px;
+}
+
+.not {
+  border-left: 3px solid var(--vscode-focusBorder);
+  padding-left: 6px;
+  margin: 4px 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 3px 0;
+}
+
+.row input {
+  flex: 1 1 6em;
+  min-width: 5em;
+}
+
+legend {
+  display: flex;
+  gap: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.hint {
+  color: var(--vscode-descriptionForeground);
+}

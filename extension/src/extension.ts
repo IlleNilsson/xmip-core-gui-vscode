@@ -2,6 +2,8 @@
 // configuration tool (ADR-0014, amendment 2026-09-10). It starts xmip-lsp,
 // hands it the runtime's path, and shows what comes back. Nothing here
 // validates anything: that is the server's, through the runtime's C ABI.
+// The routes designer (ADR-0064) is a view of an Xmip Application's text,
+// registered here and carried in designer.ts; it holds no rule either.
 //
 // This is the one place in the estate where TypeScript lives (the same
 // amendment). Anything that could be done in the Rust server is done there.
@@ -12,6 +14,7 @@ import {
   type LanguageClientOptions,
   type ServerOptions,
 } from "vscode-languageclient/node";
+import { ApplicationDesigner, viewType } from "./designer.js";
 
 /** What `xmip/validate` answers: the runtime's own report, whole. */
 interface Validation {
@@ -29,6 +32,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.commands.registerCommand("xmip.validate", () => validate(output)),
+    vscode.commands.registerCommand("xmip.openDesigner", () => openDesigner()),
+    vscode.window.registerCustomEditorProvider(
+      viewType,
+      new ApplicationDesigner(context.extensionUri, () => client),
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
     vscode.workspace.onDidChangeConfiguration(async (change) => {
       if (change.affectsConfiguration("xmip")) {
         await start(output);
@@ -86,4 +95,14 @@ async function validate(output: vscode.OutputChannel): Promise<void> {
     output.appendLine(`REFUSED ${document.fileName}: ${String(error)}`);
   }
   output.show(true);
+}
+
+/** The command: open the active document in the routes designer. */
+async function openDesigner(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (editor === undefined) {
+    void vscode.window.showInformationMessage("Xmip: open an Xmip Application first.");
+    return;
+  }
+  await vscode.commands.executeCommand("vscode.openWith", editor.document.uri, viewType);
 }
