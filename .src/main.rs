@@ -1,11 +1,12 @@
 //! `xmip-lsp`: the language server behind the VS Code extension, the
 //! developer's face of the configuration tool (ADR-0014, amendment
 //! 2026-09-10). It speaks the Language Server Protocol over stdio and
-//! validates a node configuration or an Xmip Application through the
-//! runtime's C ABI — the same `xmip_validate_v1` the desktop GUI calls,
-//! reached by loading the runtime's native library and nothing else — and
-//! answers the routes designer from section 10 of the same header
-//! (ADR-0064).
+//! validates a cluster's `xmip.toml`, its Xmip Applications among its
+//! sections, or a node configuration through the runtime's C ABI — the
+//! same `xmip_validate_v1`
+//! the desktop GUI calls, reached by loading the runtime's native library
+//! and nothing else — and answers the designer of the cluster's one file
+//! from section 10 of the same header (ADR-0064, amendment 2026-10-03).
 //!
 //! The library is the one `--runtime <path>` names, and nothing else: the
 //! extension passes its `xmip.runtime.library` setting. The server finds no
@@ -21,6 +22,8 @@
 //! `unhandled`, and what `server.rs` does to the runtime. The records go to
 //! `XMIP_AUDIT_DIRECTORY`, else the operating system's log.
 
+#[cfg(test)]
+mod built;
 mod designer;
 mod diagnostic;
 mod framing;

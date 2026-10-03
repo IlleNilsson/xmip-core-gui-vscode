@@ -16,15 +16,16 @@ Two parts, and the second is the substance:
   `xmip_operate.h`: the same call the desktop GUI makes through `Xmip.Abi`,
   and the only route through the boundary. The symbol's name and shape are
   `xmip-core-abi`'s (`operate::XMIP_VALIDATE_ENTRYPOINT`, `ValidateFn`),
-  never declared here again. It answers the routes designer from section
+  never declared here again. It answers the cluster designer from section
   10 of the same header (`operate::design`, ADR-0064). It does not run the
   `xmip` command and does not link the runtime's crates.
 
 ## What it does
 
 A `.toml` document is validated on open, change and save, and the runtime's
-own report becomes diagnostics. The runtime reads a node's configuration or
-an Xmip Application and tells the two apart itself. The command **Xmip: Validate node
+own report becomes diagnostics. The runtime reads a cluster's `xmip.toml` —
+its Xmip Applications among its sections — or a node's configuration and
+tells them apart itself. The command **Xmip: Validate node
 configuration** (`xmip/validate` to the server) prints the whole report to the
 Xmip output channel, with the runtime that produced it.
 
@@ -66,53 +67,80 @@ kind, a required one missing — comes back as the runtime's diagnostics.
 technology's declaration, for the Location form the next slice draws
 (`.src/settings.rs`).
 
-## The routes designer
+## The cluster designer
 
-An Xmip Application (ADR-0064,
-`module/platform/configure/doc/application.md`) opens in the **Xmip
-Application designer**, a custom editor over the same text: **Open With...**
-on the file, or the command **Xmip: Open in the Application designer**. The
-text editor and the designer are two views of one document, and a change in
-either shows in the other.
+Developers and operators work on one `xmip.toml` per cluster, its Xmip
+Applications among its sections, and publishing slices it into the file each
+node runs (ADR-0064 and ADR-0031, amendments 2026-10-03;
+`module/platform/configure/doc/cluster-configuration.md`). That file opens
+in the **Xmip cluster designer**, a custom editor over the same text:
+**Open With...** on `xmip.toml`, or the command **Xmip: Open in the cluster
+designer**. The text editor and the designer are two views of one document,
+and a change in either shows in the other.
 
-The designer draws the Application's routes — Receive Locations,
-Subscriptions, Xmip Processes, Send Port Groups and Send Ports, and what
-routes where — and edits a Subscription's filter as rows of property,
-operator, value and kind gathered in And and Or groups, with Not around any
-part, beside the filter's text — one line of Xmip's expression language
-(ADR-0066), of which the rows are a view; the operators and kinds a row
-offers are the server's. It holds no rule. The webview
-(`extension/webview/designer.ts`, vanilla TypeScript and SVG) draws what the
-server sends and forwards what the developer does; `extension/src/designer.ts`
-carries the messages and applies the text edit the server returns; the
-server's four requests (`.src/designer.rs`) each call one of the runtime's
-section 10 exports, which forward to `xmip-core-configure`:
+The designer is one view per artifact kind, navigated by kind and then
+entry: Cluster, Node, Receive Port, Receive Location, Send Port, Send
+Location, Send Port Group, Prepare, Promote, Demote, Route, Transformation
+and Process. Each lists the entries the file holds of it — wherever it holds
+them: the cluster's shared sections, a node's own under `[nodes.<name>]`, a
+binding, or an Xmip Application held as `[[xmip_applications]]` — with its
+values as the file writes them, each edited in place, a value added or
+removed, an entry added to any list that may hold one, a node declared, and
+an entry or node removed. A Route entry is an Xmip Application: its routes
+drawn — Receive Locations, Subscriptions, Xmip Processes, Send Port Groups
+and Send Ports, and what routes where — and a Subscription's filter edited
+as rows of property, operator, value and kind gathered in And and Or
+groups, with Not around any part, beside the filter's text, one line of
+Xmip's expression language (ADR-0066). A Receive Port entry is an
+Application's `[[xmip_applications.receive_ports]]`, and each Receive
+Location of an Application names its `receive_port` and states its
+`interaction` and `depth` (ADR-0031, amendment 2026-10-01). Prepare,
+Promote, Demote and Transformation are present and say plainly that the
+configuration does not define them yet; Process shows the
+`[[xmip_processes]]` entries and says that a Process's flow is not defined
+yet. Which kinds exist, which the configuration defines, where an entry is
+and what an edit does are the server's: the designer holds no rule.
 
-- `xmip/routes` — the routes as a graph, each node placed by the server
-  from its place along the route;
+The webview (`extension/webview/`, vanilla TypeScript and SVG:
+`designer.ts` the navigation and the entries, `routes.ts` the Route view,
+`dom.ts` what both draw with) draws what the server sends and forwards what
+the developer does; `extension/src/designer.ts` carries the messages and
+applies the text edit the server returns; the server's four requests
+(`.src/designer.rs`) each call one of the runtime's section 10 exports,
+which forward to `xmip-core-configure` (`views.rs`, `view_edit.rs`):
+
+- `xmip/views` — the file as one view per artifact kind, every Xmip
+  Application's routes placed by the server from each node's place along
+  the route;
 - `xmip/filterStructure` and `xmip/filterText` — a filter's line as rows
   and groups, and rows as the line in its canonical form; canonical text
   comes back byte for byte;
-- `xmip/edit` — declare a Receive Location, an Xmip Process or a Send Port,
-  add a Subscription, set its filter, connect it to a target; answered as
-  the one text edit that makes the change, so the webview never writes
-  TOML.
+- `xmip/edit` — set or remove a value, add or remove an entry, declare a
+  node, or one of an Application's own edits (declare a Receive Location,
+  an Xmip Process or a Send Port, add a Subscription, set its filter,
+  connect it to a target); answered as the one text edit that makes the
+  change, so the webview never writes TOML. An edit that would leave a node
+  that read unable to read, or an Application section that read unable to,
+  is refused in the reader's words.
 
-A developer draws a route by declaring its ends in the toolbar (a Receive
-Location and a Send Port, say), adding a Subscription that routes to the
-Send Port, choosing it on the canvas, building its filter in the rows and
-applying it; with a Subscription chosen, clicking another Xmip Process, Send
-Port Group or Send Port routes it there instead.
+A developer draws a route by choosing the Xmip Application under Route,
+declaring its ends in the toolbar (a Receive Location and a Send Port, say),
+adding a Subscription that routes to the Send Port, choosing it on the
+canvas, building its filter in the rows and applying it; with a Subscription
+chosen, clicking another Xmip Process, Send Port Group or Send Port routes it
+there instead.
 
 ## Building
 
 The server: `cargo build`, then `cargo test`. The tests cover the framing,
 the diagnostics, the runtime loader, the protocol and the designer's layout
-and text edits; those that need the built runtime —
-`../../../../platform/runtime/target/debug`, the estate's own build —
-validate `../samples/edge-01.xmip.toml` (the node the desktop GUI starts,
-read from the repository beside this one, never copied) and ask the
-designer's exports for a graph, a filter's round trip and every edit. Until
+and text edits; those that need the built runtime — the library
+`XMIP_RUNTIME_LIBRARY` names, else
+`../../../../platform/runtime/target/debug`, the estate's own build, found
+once in `.src/built.rs` — validate `../samples/edge-01.xmip.toml` (the node
+the desktop GUI starts, read from the repository beside this one, never
+copied) and ask the designer's exports for the views, a filter's round trip
+and every edit. Until
 2026-09-26 they looked three levels up, where no runtime is, and skipped
 without saying so to anyone who did not read the output.
 

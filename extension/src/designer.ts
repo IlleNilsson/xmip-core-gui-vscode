@@ -1,17 +1,18 @@
-// The routes designer (ADR-0064): a custom editor over an Xmip
-// Application's text. It holds no rule. The webview draws what xmip-lsp
-// answers and forwards what the developer does; the server asks the
-// runtime's library, and xmip-core-configure says what the design means and
-// how an edit changes the text. This file only carries messages between the
-// two and applies the text edit the server returns, so the text editor and
-// the designer are two views of one document and stay in step both ways.
+// The designer (ADR-0064, amendment 2026-10-03): a custom editor over the
+// cluster's one xmip.toml, a view per artifact kind. It holds no rule. The
+// webview draws what xmip-lsp answers and forwards what the developer does;
+// the server asks the runtime's library, and xmip-core-configure says what
+// the file means and how an edit changes the text. This file only carries
+// messages between the two and applies the text edit the server returns, so
+// the text editor and the designer are two views of one document and stay
+// in step both ways.
 
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import type { LanguageClient } from "vscode-languageclient/node";
 
 /** The custom editor's view type, as package.json contributes it. */
-export const viewType = "xmip.applicationDesigner";
+export const viewType = "xmip.clusterDesigner";
 
 /** What the webview sends. */
 type FromView =
@@ -31,7 +32,7 @@ export interface TextEdit {
   newText: string;
 }
 
-export class ApplicationDesigner implements vscode.CustomTextEditorProvider {
+export class ClusterDesigner implements vscode.CustomTextEditorProvider {
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly client: () => LanguageClient | undefined,
@@ -53,7 +54,7 @@ export class ApplicationDesigner implements vscode.CustomTextEditorProvider {
 
     const changed = vscode.workspace.onDidChangeTextDocument((change) => {
       if (change.document.uri.toString() === document.uri.toString()) {
-        void this.routes(document, webview);
+        void this.views(document, webview);
       }
     });
     panel.onDidDispose(() => {
@@ -72,7 +73,7 @@ export class ApplicationDesigner implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     switch (message.type) {
       case "ready":
-        return this.routes(document, webview);
+        return this.views(document, webview);
       case "edit":
         return this.edit(document, webview, message.edit);
       case "filterText":
@@ -82,9 +83,9 @@ export class ApplicationDesigner implements vscode.CustomTextEditorProvider {
     }
   }
 
-  /** The Application's routes as the server lays them out. */
-  private async routes(document: vscode.TextDocument, webview: vscode.Webview): Promise<void> {
-    await this.ask(webview, "xmip/routes", request(document), "routes");
+  /** The cluster's file, view by view, as the server answers it. */
+  private async views(document: vscode.TextDocument, webview: vscode.Webview): Promise<void> {
+    await this.ask(webview, "xmip/views", request(document), "views");
   }
 
   /** An edit the webview asked for, made to the text as the server says. */
@@ -152,22 +153,26 @@ function request(document: vscode.TextDocument): object {
   return { textDocument: { uri: document.uri.toString() }, text: document.getText() };
 }
 
-/** The webview's page: a module script and a stylesheet, nothing inline. */
+/**
+ * The webview's page: a module script and a stylesheet, nothing inline. The
+ * script loads by nonce, and the modules it imports from the extension's own
+ * webview folder by the webview's source.
+ */
 export function page(source: string, script: string, style: string): string {
   const nonce = randomBytes(16).toString("base64");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${source}; script-src 'nonce-${nonce}';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${source}; script-src 'nonce-${nonce}' ${source};">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="${style}">
-<title>Xmip Application designer</title>
+<title>Xmip cluster designer</title>
 </head>
 <body>
-<header id="bar"></header>
+<header id="bar"><h1 id="title">Xmip cluster</h1></header>
 <p id="said" role="status"></p>
-<main><svg id="canvas" role="img" aria-label="The Application's routes"></svg><aside id="side"></aside></main>
+<main><nav aria-label="Artifacts"><ul id="kinds"></ul></nav><section id="view"></section></main>
 <script type="module" nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;

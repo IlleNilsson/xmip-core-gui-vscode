@@ -115,7 +115,7 @@ void test("activation registers the command and starts the server from the setti
 
   assert.ok(commands.has("xmip.validate"), "xmip.validate is registered");
   assert.ok(commands.has("xmip.openDesigner"), "xmip.openDesigner is registered");
-  assert.ok(editors.has("xmip.applicationDesigner"), "the routes designer is registered");
+  assert.ok(editors.has("xmip.clusterDesigner"), "the cluster designer is registered");
   assert.equal(clients.length, 1);
   assert.equal(clients[0]?.id, "xmip");
   assert.equal(clients[0]?.server.command, "C:/xmip/target/debug/xmip-lsp.exe");
@@ -158,6 +158,6 @@ void test("the designer command with no editor open says so instead of opening",
 
   await open();
 
-  assert.equal(messages.at(-1), "Xmip: open an Xmip Application first.");
+  assert.equal(messages.at(-1), "Xmip: open the cluster's xmip.toml first.");
   assert.deepEqual(executed, []);
 });

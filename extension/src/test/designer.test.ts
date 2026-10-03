@@ -1,4 +1,4 @@
-// The routes designer's carrier, tested the way the shell is: in plain node,
+// The cluster designer's carrier, tested the way the shell is: in plain node,
 // offline, with the `vscode` API replaced by recording stubs and the language
 // client by one that answers from a script. What is tested is only what the
 // carrier does — pass the webview's messages to xmip-lsp, post the answers
@@ -102,16 +102,16 @@ const webview = {
 const panel = { webview, onDidDispose: () => disposable };
 
 const document = {
-  uri: { toString: () => "file:///orders.application.toml" },
+  uri: { toString: () => "file:///cluster/xmip.toml" },
   version: 1,
-  getText: () => "[application]\nname = \"Orders\"\n",
+  getText: () => "[service]\nname = \"xmip\"\n",
 };
 
 async function designer(
   client: ScriptedClient | undefined,
-): Promise<import("../designer.js").ApplicationDesigner> {
-  const { ApplicationDesigner } = await import("../designer.js");
-  const made = new ApplicationDesigner(
+): Promise<import("../designer.js").ClusterDesigner> {
+  const { ClusterDesigner } = await import("../designer.js");
+  const made = new ClusterDesigner(
     { path: "/extension" } as unknown as vscode.Uri,
     () => client as unknown as import("vscode-languageclient/node").LanguageClient,
   );
@@ -132,32 +132,32 @@ async function settled(): Promise<void> {
 void test("the page loads one script by nonce and one stylesheet, nothing inline", async () => {
   await designer(new ScriptedClient({}));
 
-  assert.match(webview.html, /script-src 'nonce-[^']+'/);
+  assert.match(webview.html, /script-src 'nonce-[^']+' vscode-resource:;/);
   assert.match(webview.html, /<script type="module" nonce="[^"]+" src="webview:\/extension\/out\/webview\/designer\.js">/);
   assert.match(webview.html, /href="webview:\/extension\/media\/designer\.css"/);
   assert.doesNotMatch(webview.html, /<script(?![^>]*src=)/);
 });
 
-void test("ready asks for the routes of the text as it is and posts them", async () => {
+void test("ready asks for the views of the text as it is and posts them", async () => {
   posted.length = 0;
-  const routes = { application: "Orders", nodes: [], edges: [] };
-  const client = new ScriptedClient({ "xmip/routes": routes });
+  const views = { cluster: "", views: [{ kind: "cluster", entries: [] }] };
+  const client = new ScriptedClient({ "xmip/views": views });
   await designer(client);
 
   received?.({ type: "ready" });
   await settled();
 
-  assert.equal(client.asked[0]?.method, "xmip/routes");
+  assert.equal(client.asked[0]?.method, "xmip/views");
   assert.equal(client.asked[0]?.params.text, document.getText());
-  assert.deepEqual(posted, [{ type: "routes", answer: routes }]);
+  assert.deepEqual(posted, [{ type: "views", answer: views }]);
 });
 
 void test("an edit is the server's text edit, applied to the document", async () => {
   applied.length = 0;
-  const edit = { "add-send-port": { name: "Billing" } };
+  const edit = { application: { application: "Orders", edit: { "add-send-port": { name: "Billing" } } } };
   const answer = {
     range: { start: { line: 2, character: 0 }, end: { line: 2, character: 0 } },
-    newText: "\n[[send_ports]]\nname = \"Billing\"\n",
+    newText: "\n[[xmip_applications.send_ports]]\nname = \"Billing\"\n",
   };
   const client = new ScriptedClient({ "xmip/edit": answer });
   await designer(client);
@@ -167,7 +167,7 @@ void test("an edit is the server's text edit, applied to the document", async ()
 
   assert.deepEqual(client.asked[0]?.params.edit, edit);
   assert.deepEqual(applied, [
-    { uri: "file:///orders.application.toml", range: [2, 0, 2, 0], text: answer.newText },
+    { uri: "file:///cluster/xmip.toml", range: [2, 0, 2, 0], text: answer.newText },
   ]);
 });
 
@@ -210,9 +210,9 @@ void test("a filter's rows go to the server for their text, and text for its row
   ]);
 });
 
-void test("a change made in the text editor draws the routes again", async () => {
+void test("a change made in the text editor draws the views again", async () => {
   posted.length = 0;
-  const client = new ScriptedClient({ "xmip/routes": { application: "Orders" } });
+  const client = new ScriptedClient({ "xmip/views": { cluster: "" } });
   await designer(client);
 
   changeListener?.({ document: { uri: { toString: () => "file:///elsewhere.toml" } } });
@@ -220,7 +220,7 @@ void test("a change made in the text editor draws the routes again", async () =>
   await settled();
 
   assert.equal(client.asked.length, 1, "only its own document");
-  assert.deepEqual(posted, [{ type: "routes", answer: { application: "Orders" } }]);
+  assert.deepEqual(posted, [{ type: "views", answer: { cluster: "" } }]);
 });
 
 void test("without a running server the webview is told so", async () => {

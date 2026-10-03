@@ -1,7 +1,7 @@
 {
   "name": "xmip",
   "displayName": "Xmip",
-  "description": "Validates an Xmip node configuration or Xmip Application through the runtime itself, as you edit it, and draws an Application's routes in a designer.",
+  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it, and designs the cluster's one xmip.toml artifact by artifact.",
   "version": "0.1.0",
   "publisher": "IlleNilsson",
   "license": "AGPL-3.0-or-later",
@@ -18,7 +18,7 @@
   ],
   "activationEvents": [
     "workspaceContains:**/*.toml",
-    "onCustomEditor:xmip.applicationDesigner"
+    "onCustomEditor:xmip.clusterDesigner"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -29,16 +29,16 @@
       },
       {
         "command": "xmip.openDesigner",
-        "title": "Xmip: Open in the Application designer"
+        "title": "Xmip: Open in the cluster designer"
       }
     ],
     "customEditors": [
       {
-        "viewType": "xmip.applicationDesigner",
-        "displayName": "Xmip Application designer",
+        "viewType": "xmip.clusterDesigner",
+        "displayName": "Xmip cluster designer",
         "selector": [
           {
-            "filenamePattern": "*.toml"
+            "filenamePattern": "xmip.toml"
           }
         ],
         "priority": "option"

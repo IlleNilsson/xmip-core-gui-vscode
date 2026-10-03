@@ -87,6 +87,7 @@ impl Runtime {
         // locked for as long as this process lives, and in development the
         // path is the runtime's own target/debug — an editor left open would
         // make the next `cargo build` fail on a locked file.
+        sweep_copies();
         let copy = temporary_copy_path(path);
         std::fs::copy(path, &copy)
             .map_err(|error| format!("could not copy {} for loading: {error}", path.display()))?;
@@ -249,9 +250,30 @@ fn asked(call: impl Fn(*mut u8, usize, *mut usize) -> i32) -> (i32, String) {
 
 impl Drop for Runtime {
     fn drop(&mut self) {
-        // Unload first: on Windows a loaded library cannot be deleted.
+        // The runtime stays resident once loaded (ADR-0027, amendment
+        // 2026-09-30), so on Windows its copy stays locked while this process
+        // lives and is removed by a later load's sweep; elsewhere it goes now.
         drop(self.library.take());
         let _ = std::fs::remove_file(&self.copy);
+    }
+}
+
+/// The prefix every copy this server loads from carries.
+const COPY_PREFIX: &str = "xmip-lsp-";
+
+/// Remove every copy another process's load left that is no longer in use;
+/// one a process still holds stays, its removal refused, and is tried again
+/// next time. This process's own are its own to remove.
+fn sweep_copies() {
+    let Ok(entries) = std::fs::read_dir(std::env::temp_dir()) else {
+        return;
+    };
+    let own = format!("{COPY_PREFIX}{}-", std::process::id());
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with(COPY_PREFIX) && !name.starts_with(&own) {
+            let _ = std::fs::remove_file(entry.path());
+        }
     }
 }
 
@@ -262,29 +284,16 @@ fn temporary_copy_path(path: &Path) -> PathBuf {
     );
     let sequence = COPIES.fetch_add(1, Ordering::Relaxed);
 
-    std::env::temp_dir().join(format!("xmip-lsp-{}-{sequence}-{name}", std::process::id()))
+    std::env::temp_dir().join(format!(
+        "{COPY_PREFIX}{}-{sequence}-{name}",
+        std::process::id()
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
-
-    /// The estate's runtime as `cargo build` leaves it, four levels up from
-    /// this crate, named as the platform names a library. Absent when nobody
-    /// built it, and that is not a failure.
-    fn built_runtime() -> Option<PathBuf> {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../../platform/runtime/target/debug")
-            .join(format!("{DLL_PREFIX}xmip_core_runtime{DLL_SUFFIX}"));
-
-        if path.is_file() {
-            Some(path)
-        } else {
-            println!("skipped: no runtime library at {}", path.display());
-            None
-        }
-    }
+    use crate::built::runtime_library as built_runtime;
 
     /// The node the GUI starts, `gui/samples/edge-01.xmip.toml` beside this
     /// repository: one fixture, shared, never copied (ADR-0052). Read at test
@@ -309,7 +318,10 @@ mod tests {
 
     #[test]
     fn a_file_that_is_not_a_library_is_refused_and_its_copy_removed() {
-        let path = std::env::temp_dir().join("xmip-lsp-not-a-library.dll");
+        let path = std::env::temp_dir().join(format!(
+            "{COPY_PREFIX}{}-not-a-library.dll",
+            std::process::id()
+        ));
         std::fs::write(&path, b"not a library").expect("writes");
 
         let reason = Runtime::load(&path).err().expect("refused");
@@ -332,7 +344,7 @@ mod tests {
         assert!(good.report.is_empty());
 
         let broken = runtime
-            .validate("[service]\nname = \"edge\"\ncluster_name = \"lab\n")
+            .validate("[service]\nname = \"edge\"\ndata = \"../data/one\n")
             .expect("calls");
         assert_eq!(broken.status, status::INVALID);
         assert!(!broken.report.is_empty());
@@ -347,6 +359,20 @@ mod tests {
         let copy = runtime.copy.clone();
         assert!(copy.is_file(), "loaded from a copy");
         drop(runtime);
-        assert!(!copy.is_file(), "the copy is removed on drop");
+        // Resident once loaded: on Windows the copy stays locked until this
+        // process ends, and a later load sweeps it; elsewhere it goes now.
+        assert_eq!(copy.is_file(), cfg!(windows), "the copy after the drop");
+    }
+
+    #[test]
+    fn a_load_sweeps_the_copies_no_process_holds() {
+        let Some(path) = built_runtime() else {
+            return;
+        };
+        let left = std::env::temp_dir().join(format!("{COPY_PREFIX}left-behind.dll"));
+        std::fs::write(&left, b"an earlier load's copy").expect("written");
+        let runtime = Runtime::load(&path).expect("loads");
+        assert!(!left.is_file(), "swept as the next copy was made");
+        assert!(runtime.copy.is_file(), "its own copy stays");
     }
 }

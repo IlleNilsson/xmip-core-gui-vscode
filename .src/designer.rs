@@ -1,25 +1,26 @@
-//! The routes designer's requests (ADR-0064): what the VS Code extension's
-//! webview asks for, answered from the runtime's library.
+//! The designer's requests (ADR-0064, amendment 2026-10-03): what the VS
+//! Code extension's webview asks of the cluster's one `xmip.toml`, answered
+//! from the runtime's library.
 //!
 //! Four custom requests, each one of `xmip_operate.h` section 10's exports:
 //!
-//! - `xmip/routes` `{ text }` — an Xmip Application's routes as a graph,
-//!   every node given its place on the canvas;
+//! - `xmip/views` `{ text }` — the cluster's file as one view per artifact
+//!   kind, each Xmip Application's routes given their places on the canvas;
 //! - `xmip/filterStructure` `{ filter }` — a filter's text as rows and groups;
 //! - `xmip/filterText` `{ structure }` — rows and groups as the filter's text;
-//! - `xmip/edit` `{ text, edit }` — an edit to the Application, answered as
-//!   the one text edit that makes it, so the webview never writes TOML.
+//! - `xmip/edit` `{ text, edit }` — an edit to the file, answered as the one
+//!   text edit that makes it, so the webview never writes TOML.
 //!
-//! What the design means is `xmip-core-configure`'s, behind the runtime's
-//! library. What is here is the language server's part: the layout — where
-//! each node stands, from its place along the route — and the text edit,
-//! in the protocol's positions.
+//! What the file and its design mean is `xmip-core-configure`'s, behind the
+//! runtime's library. What is here is the language server's part: the
+//! layout — where each node of a route stands, from its place along the
+//! route — and the text edit, in the protocol's positions.
 
 use std::collections::BTreeMap;
 
 use abi::ffi::status;
 use abi::operate::design::{
-    APPLICATION_EDIT_ENTRYPOINT, APPLICATION_ROUTES_ENTRYPOINT, FILTER_STRUCTURE_ENTRYPOINT,
+    CLUSTER_EDIT_ENTRYPOINT, CLUSTER_VIEWS_ENTRYPOINT, FILTER_STRUCTURE_ENTRYPOINT,
     FILTER_TEXT_ENTRYPOINT,
 };
 use serde_json::{Value, json};
@@ -27,9 +28,9 @@ use serde_json::{Value, json};
 use crate::runtime::Runtime;
 
 /// The methods this file answers.
-pub const METHODS: [&str; 4] = [ROUTES, FILTER_STRUCTURE, FILTER_TEXT, EDIT];
+pub const METHODS: [&str; 4] = [VIEWS, FILTER_STRUCTURE, FILTER_TEXT, EDIT];
 
-const ROUTES: &str = "xmip/routes";
+const VIEWS: &str = "xmip/views";
 const FILTER_STRUCTURE: &str = "xmip/filterStructure";
 const FILTER_TEXT: &str = "xmip/filterText";
 const EDIT: &str = "xmip/edit";
@@ -53,8 +54,8 @@ pub enum Unanswered {
     Refused(String),
 }
 
-/// Answer `method` over `params`. `document` is the Application's text, the
-/// one the request carries or the one the server holds for its uri.
+/// Answer `method` over `params`. `document` is the cluster's file, the
+/// text the request carries or the one the server holds for its uri.
 ///
 /// # Errors
 /// [`Unanswered`], saying which of the three it was.
@@ -67,10 +68,10 @@ pub fn answer(
     let needed = |key: &str| Unanswered::Params(format!("{method} needs {key}"));
 
     match method {
-        ROUTES => {
+        VIEWS => {
             let text = document.ok_or_else(|| needed("a text or an open uri"))?;
-            let routes = ask(runtime, APPLICATION_ROUTES_ENTRYPOINT, text, "")?;
-            Ok(laid_out(parsed(&routes)?))
+            let views = ask(runtime, CLUSTER_VIEWS_ENTRYPOINT, text, "")?;
+            Ok(every_route_laid_out(parsed(&views)?))
         }
         FILTER_STRUCTURE => {
             let filter = params["filter"]
@@ -88,12 +89,7 @@ pub fn answer(
         EDIT => {
             let text = document.ok_or_else(|| needed("a text or an open uri"))?;
             let edit = params.get("edit").ok_or_else(|| needed("an edit"))?;
-            let edited = ask(
-                runtime,
-                APPLICATION_EDIT_ENTRYPOINT,
-                text,
-                &edit.to_string(),
-            )?;
+            let edited = ask(runtime, CLUSTER_EDIT_ENTRYPOINT, text, &edit.to_string())?;
             Ok(text_edit(text, &edited))
         }
         _ => Err(Unanswered::Params(format!(
@@ -122,6 +118,19 @@ fn ask(
 fn parsed(text: &str) -> Result<Value, Unanswered> {
     serde_json::from_str(text)
         .map_err(|error| Unanswered::Unavailable(format!("the runtime answered no JSON: {error}")))
+}
+
+/// The views with every Xmip Application's routes laid out.
+#[must_use]
+pub fn every_route_laid_out(mut views: Value) -> Value {
+    for view in views["views"].as_array_mut().into_iter().flatten() {
+        for entry in view["entries"].as_array_mut().into_iter().flatten() {
+            if let Some(routes) = entry.get_mut("routes") {
+                *routes = laid_out(routes.take());
+            }
+        }
+    }
+    views
 }
 
 /// The graph with every node placed: its column from its place along the
@@ -196,34 +205,38 @@ fn position(text: &str, offset: usize) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
-    use std::path::Path;
 
-    /// The estate's runtime as `cargo build` leaves it, beside this
-    /// repository in the estate. Absent when nobody built it, which is said.
+    /// The runtime the estate built, when it built one.
     fn built() -> Option<Runtime> {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../../platform/runtime/target/debug")
-            .join(format!("{DLL_PREFIX}xmip_core_runtime{DLL_SUFFIX}"));
-
-        if path.is_file() {
-            Some(Runtime::load(&path).expect("the built runtime loads"))
-        } else {
-            println!("skipped: no runtime library at {}", path.display());
-            None
-        }
+        crate::built::runtime_library()
+            .map(|path| Runtime::load(&path).expect("the built runtime loads"))
     }
 
-    const ORDERS: &str = "[application]\nname = \"Orders\"\n\n[[receive_locations]]\n\
-                          name = \"OrdersIn\"\n\n[[xmip_processes]]\nname = \"Approval\"\n\n\
-                          [[send_ports]]\nname = \"Billing\"\n\n[[subscriptions]]\n\
-                          id = \"billing\"\ndestination = { send-port = \"Billing\" }\n\
+    /// A cluster's file holding one Xmip Application as a section. It
+    /// declares no node, so it names none.
+    const ORDERS: &str = "# The cluster's one file.\n[service]\nname = \"xmip\"\n\n\
+                          [[receive_locations]]\nname = \"drop\"\nstart = true\n\
+                          transport = \"xmip-core-transport-file\"\naddress = \"/in\"\n\n\
+                          [[xmip_applications]]\nname = \"Orders\"\n\n\
+                          [[xmip_applications.receive_ports]]\nname = \"Orders\"\n\n\
+                          [[xmip_applications.receive_locations]]\nname = \"OrdersIn\"\n\
+                          receive_port = \"Orders\"\ninteraction = \"data-transfer\"\n\
+                          depth = \"light\"\n\n\
+                          [[xmip_applications.xmip_processes]]\nname = \"Approval\"\n\n\
+                          [[xmip_applications.send_ports]]\nname = \"Billing\"\n\n\
+                          [[xmip_applications.subscriptions]]\nid = \"billing\"\n\
+                          destination = { send-port = \"Billing\" }\n\
                           filter = \"MessageType = 'Order'\"\n";
 
     fn edited(runtime: &Runtime, edit: &Value) -> String {
         let answered =
             answer(runtime, EDIT, &json!({ "edit": edit }), Some(ORDERS)).expect("edits");
         applied(ORDERS, &answered)
+    }
+
+    /// One of the Application's own edits, made to its section.
+    fn of_orders(edit: &Value) -> Value {
+        json!({ "application": { "application": "Orders", "edit": edit } })
     }
 
     /// The text edit applied the way an editor applies it.
@@ -284,9 +297,19 @@ mod tests {
     }
 
     #[test]
-    fn the_graph_model_comes_from_the_runtime_laid_out() {
+    fn the_views_come_from_the_runtime_with_every_route_laid_out() {
         let Some(runtime) = built() else { return };
-        let routes = answer(&runtime, ROUTES, &json!({}), Some(ORDERS)).expect("routes");
+        let views = answer(&runtime, VIEWS, &json!({}), Some(ORDERS)).expect("views");
+
+        let kinds = views["views"].as_array().expect("views").iter();
+        let kinds = kinds
+            .map(|view| view["kind"].as_str().expect("kind"))
+            .collect::<Vec<_>>();
+        assert_eq!(kinds.len(), 13);
+        assert_eq!(kinds[0], "cluster");
+        let route = &views["views"][10];
+        assert_eq!(route["kind"], "route");
+        let routes = &route["entries"][0]["routes"];
 
         let ids = routes["nodes"].as_array().expect("nodes").iter();
         let ids = ids
@@ -306,6 +329,15 @@ mod tests {
         assert_eq!(routes["edges"].as_array().expect("edges").len(), 2);
         assert_eq!(routes["operators"][0], "=");
         assert_eq!(routes["kinds"][3], "expression");
+        assert_eq!(
+            views["views"][3]["entries"][0]["section"],
+            json!(["receive_locations", "drop"])
+        );
+        assert_eq!(views["views"][2]["defined"], true);
+        assert_eq!(
+            views["views"][2]["entries"][0]["section"],
+            json!(["xmip_applications", "Orders", "receive_ports", "Orders"])
+        );
     }
 
     #[test]
@@ -350,12 +382,12 @@ mod tests {
 
         let added = edited(
             &runtime,
-            &json!({ "add-subscription": {
-            "id": "approval", "target": "xmip-process:Approval" } }),
+            &of_orders(&json!({ "add-subscription": {
+            "id": "approval", "target": "xmip-process:Approval" } })),
         );
         assert!(
             added.ends_with(
-                "\n[[subscriptions]]\nid = \"approval\"\n\
+                "\n[[xmip_applications.subscriptions]]\nid = \"approval\"\n\
             destination = { process = \"Approval\" }\nfilter = \"true\"\n"
             ),
             "{added}"
@@ -363,9 +395,9 @@ mod tests {
 
         let filtered = edited(
             &runtime,
-            &json!({ "set-filter": { "subscription": "billing",
+            &of_orders(&json!({ "set-filter": { "subscription": "billing",
             "filter": { "shape": "condition", "property": "Amount", "operator": ">",
-                        "value": "1000", "kind": "integer" } } }),
+                        "value": "1000", "kind": "integer" } } })),
         );
         assert!(
             filtered.contains("filter = \"Amount > 1000\"\n"),
@@ -374,8 +406,8 @@ mod tests {
 
         let connected = edited(
             &runtime,
-            &json!({ "connect": {
-            "subscription": "billing", "target": "xmip-process:Approval" } }),
+            &of_orders(&json!({ "connect": {
+            "subscription": "billing", "target": "xmip-process:Approval" } })),
         );
         assert_eq!(
             connected,
@@ -387,15 +419,22 @@ mod tests {
             ("add-xmip-process", "Audit"),
             ("add-send-port", "Ledger"),
         ] {
-            let added = edited(&runtime, &json!({ edit: { "name": name } }));
+            let added = edited(&runtime, &of_orders(&json!({ edit: { "name": name } })));
             assert!(added.contains(&format!("name = \"{name}\"\n")), "{added}");
         }
+
+        let moved = edited(
+            &runtime,
+            &json!({ "set": { "section": ["receive_locations", "drop"],
+                              "key": ["address"], "value": "\"/srv/in\"" } }),
+        );
+        assert_eq!(moved, ORDERS.replace("\"/in\"", "\"/srv/in\""));
 
         let refused = answer(
             &runtime,
             EDIT,
-            &json!({ "edit": { "connect": {
-            "subscription": "billing", "target": "send-port:Audit" } } }),
+            &json!({ "edit": of_orders(&json!({ "connect": {
+            "subscription": "billing", "target": "send-port:Audit" } })) }),
             Some(ORDERS),
         );
         assert!(

@@ -95,7 +95,7 @@ fn number_after(text: &str, marker: &str) -> Option<u32> {
 mod tests {
     use super::*;
 
-    const DOCUMENT: &str = "[service]\nname = \"edge\"\ncluster_name = \"lab\"\n";
+    const DOCUMENT: &str = "[service]\nname = \"edge\"\ndata = \"../data/one\"\n";
 
     #[test]
     fn a_report_with_three_lines_is_three_diagnostics() {
@@ -127,13 +127,13 @@ mod tests {
 
     #[test]
     fn a_parse_failure_is_one_diagnostic_at_the_line_and_column_it_names() {
-        let report = "configuration parse failed: TOML parse error at line 3, column 16\n  |\n\
-                      3 | cluster_name = \"lab\n  |                ^\ninvalid basic string\n";
+        let report = "configuration parse failed: TOML parse error at line 3, column 8\n  |\n\
+                      3 | data = \"../data/one\n  |        ^\ninvalid basic string\n";
         let found = diagnostics(report, DOCUMENT);
 
         assert_eq!(found.len(), 1);
         assert_eq!(found[0]["range"]["start"]["line"], 2);
-        assert_eq!(found[0]["range"]["start"]["character"], 15);
+        assert_eq!(found[0]["range"]["start"]["character"], 7);
         assert_eq!(found[0]["range"]["end"]["character"], 20);
         assert!(
             found[0]["message"]

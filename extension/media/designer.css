@@ -1,6 +1,6 @@
-/* The routes designer's page (ADR-0064), in the editor's own theme: every
-   color is one VS Code gives the webview, so the designer is light, dark or
-   high contrast as the editor is. */
+/* The cluster designer's page (ADR-0064, amendment 2026-10-03), in the
+   editor's own theme: every color is one VS Code gives the webview, so the
+   designer is light, dark or high contrast as the editor is. */
 
 body {
   margin: 0;
@@ -11,7 +11,8 @@ body {
   font-size: var(--vscode-font-size);
 }
 
-#bar {
+#bar,
+.bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -69,6 +70,70 @@ button:disabled {
 }
 
 main {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+nav {
+  flex: 0 0 240px;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul ul {
+  padding-left: 12px;
+}
+
+nav button {
+  width: 100%;
+  text-align: left;
+  color: var(--vscode-foreground);
+  background: transparent;
+}
+
+nav button:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+nav .chosen > button {
+  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+nav .kind.undefined {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+#view {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#view h2 {
+  font-size: 1.1em;
+}
+
+.undefined {
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.fields td {
+  padding: 2px 6px 2px 0;
+  vertical-align: middle;
+}
+
+.fields input {
+  min-width: 18em;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.drawing {
   display: flex;
   gap: 12px;
   align-items: flex-start;

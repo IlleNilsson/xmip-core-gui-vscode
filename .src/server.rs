@@ -2,11 +2,11 @@
 //!
 //! A message in, zero or more messages out, and the process ends when the
 //! client says so. Documents are held whole — the server asks for full
-//! synchronisation — because validation needs the whole text and a node
-//! configuration or an Xmip Application is small. Only documents named
+//! synchronisation — because validation needs the whole text and a
+//! cluster's file or a node configuration is small. Only documents named
 //! `.toml` are validated, and the runtime tells the two apart; the rest are
-//! held and never reported on. The routes designer's requests are
-//! `designer.rs`'s (ADR-0064).
+//! held and never reported on. The designer's requests, over the cluster's
+//! one `xmip.toml`, are `designer.rs`'s (ADR-0064, amendment 2026-10-03).
 //!
 //! What it does to the runtime is audited (ADR-0062): a library loaded as
 //! `load-runtime`, and a library that could not be loaded or a validation
@@ -215,7 +215,7 @@ impl Server {
         }
     }
 
-    /// One of the routes designer's requests (ADR-0064), over the text in
+    /// One of the designer's requests (ADR-0064), over the text in
     /// the params or the document the params name.
     fn design_request(&mut self, method: &str, id: Option<&Value>, params: &Value) -> Value {
         let document = params["text"]
@@ -386,7 +386,6 @@ fn publish_diagnostics(uri: &str, diagnostics: &[Value]) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
 
     const NOWHERE: &str = "Z:/no/such/xmip_core_runtime.dll";
 
@@ -588,14 +587,9 @@ mod tests {
 
     #[test]
     fn validate_over_the_built_runtime_returns_the_raw_report() {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../../platform/runtime/target/debug")
-            .join(format!("{DLL_PREFIX}xmip_core_runtime{DLL_SUFFIX}"));
-
-        if !path.is_file() {
-            println!("skipped: no runtime library at {}", path.display());
+        let Some(path) = crate::built::runtime_library() else {
             return;
-        }
+        };
 
         let mut target = Server::new(Some(path), audit("built"));
         let (out, _) = handle(
