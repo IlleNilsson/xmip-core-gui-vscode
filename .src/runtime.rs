@@ -295,16 +295,17 @@ mod tests {
     use super::*;
     use crate::built::runtime_library as built_runtime;
 
-    /// The node the GUI starts, `gui/samples/edge-01.xmip.toml` beside this
-    /// repository: one fixture, shared, never copied (ADR-0052). Read at test
-    /// time rather than included, because the sample is only where the built
-    /// runtime is — in the estate — and a checkout of this repository alone
-    /// must still compile its tests.
-    fn sample_node() -> String {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../samples/edge-01.xmip.toml");
+    /// The cluster the desktop GUI edits and starts a node of,
+    /// `gui/samples/xmip.toml` beside this repository: one fixture, shared,
+    /// never copied (ADR-0052). Read at test time rather than included,
+    /// because the sample is only where the built runtime is — in the estate
+    /// — and a checkout of this repository alone must still compile its
+    /// tests.
+    fn sample_cluster() -> String {
+        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../samples/xmip.toml");
 
         std::fs::read_to_string(&sample)
-            .unwrap_or_else(|error| panic!("no sample node at {}: {error}", sample.display()))
+            .unwrap_or_else(|error| panic!("no sample cluster at {}: {error}", sample.display()))
     }
 
     #[test]
@@ -331,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn the_built_runtime_validates_the_sample_node_and_refuses_a_broken_one() {
+    fn the_built_runtime_validates_the_sample_cluster_and_refuses_a_broken_one() {
         let Some(path) = built_runtime() else {
             return;
         };
@@ -339,7 +340,7 @@ mod tests {
 
         assert_eq!(runtime.source(), path);
 
-        let good = runtime.validate(&sample_node()).expect("calls");
+        let good = runtime.validate(&sample_cluster()).expect("calls");
         assert!(good.is_valid(), "unexpected report: {}", good.report);
         assert!(good.report.is_empty());
 

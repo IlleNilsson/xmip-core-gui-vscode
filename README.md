@@ -72,7 +72,10 @@ technology's declaration, for the Location form the next slice draws
 Developers and operators work on one `xmip.toml` per cluster, its Xmip
 Applications among its sections, and publishing slices it into the file each
 node runs (ADR-0064 and ADR-0031, amendments 2026-10-03;
-`module/platform/configure/doc/cluster-configuration.md`). That file opens
+`module/platform/configure/doc/cluster-configuration.md`); a node's own file
+is never edited (ADR-0031, amendment 2026-10-05). The Operation Desktop's
+Configure page edits the same file through the same section 10 exports, and
+slices and ships it on save (`../README.md`). That file opens
 in the **Xmip cluster designer**, a custom editor over the same text:
 **Open With...** on `xmip.toml`, or the command **Xmip: Open in the cluster
 designer**. The text editor and the designer are two views of one document,
@@ -137,9 +140,9 @@ the diagnostics, the runtime loader, the protocol and the designer's layout
 and text edits; those that need the built runtime — the library
 `XMIP_RUNTIME_LIBRARY` names, else
 `../../../../platform/runtime/target/debug`, the estate's own build, found
-once in `.src/built.rs` — validate `../samples/edge-01.xmip.toml` (the node
-the desktop GUI starts, read from the repository beside this one, never
-copied) and ask the designer's exports for the views, a filter's round trip
+once in `.src/built.rs` — validate `../samples/xmip.toml` (the cluster the
+desktop GUI edits and starts a node of, read from the repository beside this
+one, never copied) and ask the designer's exports for the views, a filter's round trip
 and every edit. Until
 2026-09-26 they looked three levels up, where no runtime is, and skipped
 without saying so to anyone who did not read the output.
