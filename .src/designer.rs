@@ -222,7 +222,7 @@ mod tests {
                           [[xmip_applications.receive_locations]]\nname = \"OrdersIn\"\n\
                           receive_port = \"Orders\"\ninteraction = \"data-transfer\"\n\
                           depth = \"light\"\n\n\
-                          [[xmip_applications.xmip_processes]]\nname = \"Approval\"\n\n\
+                          [[xmip_applications.work_processes]]\nname = \"Approval\"\n\n\
                           [[xmip_applications.send_ports]]\nname = \"Billing\"\n\n\
                           [[xmip_applications.subscriptions]]\nid = \"billing\"\n\
                           destination = { send-port = \"Billing\" }\n\
@@ -320,7 +320,7 @@ mod tests {
             [
                 "receive-location:OrdersIn",
                 "subscription:billing",
-                "xmip-process:Approval",
+                "work-process:Approval",
                 "send-port:Billing"
             ]
         );
@@ -383,12 +383,12 @@ mod tests {
         let added = edited(
             &runtime,
             &of_orders(&json!({ "add-subscription": {
-            "id": "approval", "target": "xmip-process:Approval" } })),
+            "id": "approval", "target": "work-process:Approval" } })),
         );
         assert!(
             added.ends_with(
                 "\n[[xmip_applications.subscriptions]]\nid = \"approval\"\n\
-            destination = { process = \"Approval\" }\nfilter = \"true\"\n"
+            destination = { work-process = \"Approval\" }\nfilter = \"true\"\n"
             ),
             "{added}"
         );
@@ -407,16 +407,19 @@ mod tests {
         let connected = edited(
             &runtime,
             &of_orders(&json!({ "connect": {
-            "subscription": "billing", "target": "xmip-process:Approval" } })),
+            "subscription": "billing", "target": "work-process:Approval" } })),
         );
         assert_eq!(
             connected,
-            ORDERS.replace("{ send-port = \"Billing\" }", "{ process = \"Approval\" }")
+            ORDERS.replace(
+                "{ send-port = \"Billing\" }",
+                "{ work-process = \"Approval\" }"
+            )
         );
 
         for (edit, name) in [
             ("add-receive-location", "Drop"),
-            ("add-xmip-process", "Audit"),
+            ("add-work-process", "Audit"),
             ("add-send-port", "Ledger"),
         ] {
             let added = edited(&runtime, &of_orders(&json!({ edit: { "name": name } })));

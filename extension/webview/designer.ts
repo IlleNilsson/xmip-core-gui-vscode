@@ -1,7 +1,7 @@
 // The designer's webview (ADR-0064, amendment 2026-10-03): the cluster's one
 // xmip.toml, a view per artifact kind — Cluster, Node, Receive Port, Receive
 // Location, Send Port, Send Location, Send Port Group, Prepare, Promote,
-// Demote, Route, Transformation, Process — navigated by kind, then entry.
+// Demote, Route, Transformation, Work Process — navigated by kind, then entry.
 // Each entry's values are shown as the file writes them and edited in
 // place; a Route entry is an Xmip Application, drawn by routes.ts. It holds
 // no rule: which kinds exist, where an entry is, whether the configuration

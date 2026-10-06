@@ -90,7 +90,7 @@ binding, or an Xmip Application held as `[[xmip_applications]]` — with its
 values as the file writes them, each edited in place, a value added or
 removed, an entry added to any list that may hold one, a node declared, and
 an entry or node removed. A Route entry is an Xmip Application: its routes
-drawn — Receive Locations, Subscriptions, Xmip Processes, Send Port Groups
+drawn — Receive Locations, Subscriptions, Work Processes, Send Port Groups
 and Send Ports, and what routes where — and a Subscription's filter edited
 as rows of property, operator, value and kind gathered in And and Or
 groups, with Not around any part, beside the filter's text, one line of
@@ -100,7 +100,7 @@ Location of an Application names its `receive_port` and states its
 `interaction` and `depth` (ADR-0031, amendment 2026-10-01). Prepare,
 Promote, Demote and Transformation are present and say plainly that the
 configuration does not define them yet; Process shows the
-`[[xmip_processes]]` entries and says that a Process's flow is not defined
+`[[work_processes]]` entries and says that a Process's flow is not defined
 yet. Which kinds exist, which the configuration defines, where an entry is
 and what an edit does are the server's: the designer holds no rule.
 
@@ -120,7 +120,7 @@ which forward to `xmip-core-configure` (`views.rs`, `view_edit.rs`):
   comes back byte for byte;
 - `xmip/edit` — set or remove a value, add or remove an entry, declare a
   node, or one of an Application's own edits (declare a Receive Location,
-  an Xmip Process or a Send Port, add a Subscription, set its filter,
+  a Work Process or a Send Port, add a Subscription, set its filter,
   connect it to a target); answered as the one text edit that makes the
   change, so the webview never writes TOML. An edit that would leave a node
   that read unable to read, or an Application section that read unable to,
@@ -130,7 +130,7 @@ A developer draws a route by choosing the Xmip Application under Route,
 declaring its ends in the toolbar (a Receive Location and a Send Port, say),
 adding a Subscription that routes to the Send Port, choosing it on the
 canvas, building its filter in the rows and applying it; with a Subscription
-chosen, clicking another Xmip Process, Send Port Group or Send Port routes it
+chosen, clicking another Work Process, Send Port Group or Send Port routes it
 there instead.
 
 ## Building

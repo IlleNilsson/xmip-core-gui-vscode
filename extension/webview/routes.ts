@@ -129,12 +129,12 @@ export function filterStructureAnswered(answer: Part): void {
 // -- The toolbar: add what the Application declares -------------------------
 
 function drawBar(bar: HTMLElement): void {
-  const kind = choice(["Receive Location", "Xmip Process", "Send Port"], "Receive Location", () => {});
+  const kind = choice(["Receive Location", "Work Process", "Send Port"], "Receive Location", () => {});
   const name = html("input");
   name.placeholder = "name";
   const adds: Record<string, string> = {
     "Receive Location": "add-receive-location",
-    "Xmip Process": "add-xmip-process",
+    "Work Process": "add-work-process",
     "Send Port": "add-send-port",
   };
   const add = button("Add", () => {
@@ -284,7 +284,7 @@ function drawSide(): void {
     side.append(
       html(
         "p",
-        "Choose a Subscription to edit its filter. With one chosen, click an Xmip Process, " +
+        "Choose a Subscription to edit its filter. With one chosen, click a Work Process, " +
           "a Send Port Group or a Send Port to route it there.",
         "hint",
       ),
