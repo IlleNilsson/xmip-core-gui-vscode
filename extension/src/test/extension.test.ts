@@ -115,6 +115,9 @@ void test("activation registers the command and starts the server from the setti
 
   assert.ok(commands.has("xmip.validate"), "xmip.validate is registered");
   assert.ok(commands.has("xmip.openDesigner"), "xmip.openDesigner is registered");
+  for (const command of ["xmip.add", "xmip.rename", "xmip.delete"]) {
+    assert.ok(commands.has(command), `${command} is registered`);
+  }
   assert.ok(editors.has("xmip.clusterDesigner"), "the cluster designer is registered");
   assert.equal(clients.length, 1);
   assert.equal(clients[0]?.id, "xmip");

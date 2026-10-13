@@ -22,14 +22,22 @@
 //! `unhandled`, and what `server.rs` does to the runtime. The records go to
 //! `XMIP_AUDIT_DIRECTORY`, else the operating system's log.
 
+mod action;
 #[cfg(test)]
 mod built;
+mod completion;
 mod designer;
 mod diagnostic;
+mod edit;
 mod framing;
+mod language;
+mod lookup;
+mod model;
+mod quickfix;
 mod runtime;
 mod server;
 mod settings;
+mod text;
 
 use std::collections::BTreeMap;
 use std::io::{self, BufReader, Write};

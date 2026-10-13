@@ -67,6 +67,61 @@ kind, a required one missing — comes back as the runtime's diagnostics.
 technology's declaration, for the Location form the next slice draws
 (`.src/settings.rs`).
 
+## Editing the cluster's xmip.toml
+
+The owner, 2026-10-13, trying the extension: *Nice attempt, but not really
+usefull VS Code extension* — it must *Create, Edit, Delete. Suggestions,
+Lookups, Validations* (ADR-0064, amendment 2026-10-13). In the text editor
+over the cluster's `xmip.toml`:
+
+- **Suggestions** (Ctrl+Space, and on `"`, `[`, `.`, `=`, `{`, `,`): on a
+  line opening with `[`, every header the file may open, a node's tables
+  for each node it declares; on an empty line, the keys the table may hold
+  and does not write yet, each with its kind and whether it is required,
+  inserted with a value of its kind; after `=`, the names a reference may
+  take (a Receive Location's `receive_port`, a Subscription's
+  `destination = { send-port = "…" }`, a Send Port Group's `send_ports`, a
+  binding's `name`, a bound Location's `name` and `node`), a choice's words
+  (`interaction`, `depth`, `failover`, `execution_style`, …), the role
+  words a node's `roles` takes, `true` or `false`; in a `filter`, the
+  properties the file's filters compare and the operators a filter row
+  offers; in `[tuning]`, the runtime's tuning keys; a Location's transport,
+  contract and settings as below.
+- **Lookups**: F12 on a reference goes to what it names; Shift+F12 on a
+  name or a reference lists every place that names it; hover on a key says
+  its kind, whether it is required, its words and what it names, on a
+  reference what it names and that entry's values, on a header or name the
+  entry and how often it is named; the Outline lists every entry within the
+  one it belongs to; F2 on a name or a reference renames the entry and every
+  name standing for it.
+- **Create, rename, delete**: Ctrl+. in an entry offers *Rename*, *Delete*,
+  *Delete … and the names that stand for it* where anything names it, and
+  *Add …* for each list of the entry or table the cursor is in (*Add
+  Subscription to …* in an Xmip Application, *Declare a node* at the top);
+  the commands **Xmip: Add to the cluster's xmip.toml**, **Xmip: Rename in
+  the cluster's xmip.toml** and **Xmip: Delete from the cluster's xmip.toml**
+  do the same from a list of every place or entry. A plain delete of
+  something still named is refused, naming each reference that holds it.
+- **Validations**: the runtime's report on every change, as before; Ctrl+.
+  on a problem offers its fix where one is determinable — a key no reader
+  takes, changed to the nearest key that is taken; a key a table cannot be
+  without, inserted with its kind's empty value to fill in; a name nothing
+  is declared under, changed to each name that is.
+
+Every list, key, kind and word is the runtime's: `xmip_cluster_views_v1`'s
+answer — `xmip-core-configure`'s views, `written`, `references` and `keys`,
+and the runtime's `[tuning]` declaration — and `xmip_role_words_v1`; every
+change is `xmip_cluster_edit_v1`'s (`rename`, `remove-entry`, `refer`,
+`rename-key`, `set`, `add-entry`, `add-node`, an Application's
+`add-subscription`), answered as the one text edit that makes it
+(`.src/model.rs`, `completion.rs`, `lookup.rs`, `action.rs`,
+`quickfix.rs`, `edit.rs`, dispatched by `language.rs`). The extension's
+`src/commands.ts` asks the developer only what the server sends it to ask
+(`xmip/places`, `xmip/entries`) and runs the server's commands
+(`xmip.server.add`, `xmip.server.rename`, `xmip.server.edit`), which the
+language client registers. Parties are not in the configuration yet, so
+none is suggested.
+
 ## The cluster designer
 
 Developers and operators work on one `xmip.toml` per cluster, its Xmip
@@ -142,7 +197,12 @@ and text edits; those that need the built runtime — the library
 `../../../../platform/runtime/target/debug`, the estate's own build, found
 once in `.src/built.rs` — validate `../samples/xmip.toml` (the cluster the
 desktop GUI edits and starts a node of, read from the repository beside this
-one, never copied) and ask the designer's exports for the views, a filter's round trip
+one, never copied), ask every editing request of the test cluster's
+`xmip.toml` (the estate's `test/xmip.toml`, or the file `XMIP_TEST_CLUSTER`
+names, its nodes' names read from it through the runtime, never written)
+with an Xmip Application added to it — suggestions, definition,
+references, hover, the outline, rename, code actions, each command and
+each quick fix — and ask the designer's exports for the views, a filter's round trip
 and every edit. Until
 2026-09-26 they looked three levels up, where no runtime is, and skipped
 without saying so to anyone who did not read the output.

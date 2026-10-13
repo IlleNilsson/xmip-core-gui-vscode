@@ -25,8 +25,9 @@ use xcore::{ExecutionPhase, Severity};
 
 use crate::designer::{self, Unanswered};
 use crate::diagnostic;
+
 use crate::runtime::{Runtime, Validation};
-use crate::settings;
+use crate::{language, settings};
 
 /// The name the server reports to the client.
 pub const NAME: &str = "xmip-lsp";
@@ -34,11 +35,11 @@ pub const NAME: &str = "xmip-lsp";
 /// JSON-RPC: the method is not one this server knows.
 const METHOD_NOT_FOUND: i64 = -32601;
 /// JSON-RPC: the parameters are not what the method takes.
-const INVALID_PARAMS: i64 = -32602;
+pub(crate) const INVALID_PARAMS: i64 = -32602;
 /// The runtime library could not be reached; the message says why.
-const RUNTIME_UNAVAILABLE: i64 = -32001;
+pub(crate) const RUNTIME_UNAVAILABLE: i64 = -32001;
 /// The runtime refused what the designer asked; the message is its sentence.
-const REFUSED: i64 = -32002;
+pub(crate) const REFUSED: i64 = -32002;
 
 /// What every validation says when no runtime library was named.
 pub const NOT_NAMED: &str = "no runtime library was named: set xmip.runtime.library to the \
@@ -47,8 +48,12 @@ pub const NOT_NAMED: &str = "no runtime library was named: set xmip.runtime.libr
 /// The server's state between messages.
 pub struct Server {
     runtime_path: Option<PathBuf>,
-    runtime: Option<Runtime>,
-    documents: HashMap<String, String>,
+    pub(crate) runtime: Option<Runtime>,
+    pub(crate) documents: HashMap<String, String>,
+    /// The runtime's reading of each document, read again when it changes.
+    pub(crate) models: HashMap<String, crate::model::Model>,
+    /// The id of the next request the server sends the client.
+    pub(crate) asked: u64,
     shut_down: bool,
     audit: ProgramAudit,
     /// The last failure audited, so one repeated on every validation is
@@ -70,6 +75,8 @@ impl Server {
             runtime_path,
             runtime: None,
             documents: HashMap::new(),
+            models: HashMap::new(),
+            asked: 0,
             shut_down: false,
             audit,
             audited: None,
@@ -102,6 +109,13 @@ impl Server {
             "textDocument/didSave" => self.saved(params, out),
             "textDocument/didClose" => self.closed(params, out),
             "xmip/validate" => out.push(self.validate_request(id, params)),
+            // A client's answer to what the server asked (an edit applied):
+            // nothing more to do.
+            "" => {}
+            method if language::METHODS.contains(&method) => {
+                let id = id.cloned();
+                self.language_request(method, id.as_ref(), params, out);
+            }
             method if settings::METHODS.contains(&method) => {
                 out.push(self.settings_request(method, id, params));
             }
@@ -155,6 +169,7 @@ impl Server {
     fn closed(&mut self, params: &Value, out: &mut Vec<Value>) {
         let uri = uri_of(params);
 
+        self.models.remove(&uri);
         if self.documents.remove(&uri).is_some() && is_toml(&uri) {
             out.push(publish_diagnostics(&uri, &[]));
         }
@@ -284,7 +299,7 @@ impl Server {
         }
     }
 
-    fn runtime(&mut self) -> Result<&Runtime, String> {
+    pub(crate) fn runtime(&mut self) -> Result<&Runtime, String> {
         if self.runtime.is_none() {
             let loading = self
                 .runtime_path
@@ -336,16 +351,11 @@ pub fn kept(outcome: Result<AuditOutcome, AuditError>) {
 }
 
 fn initialize_result() -> Value {
+    let mut capabilities = language::capabilities();
+    capabilities["textDocumentSync"] =
+        json!({ "openClose": true, "change": 1, "save": { "includeText": true } });
     json!({
-        "capabilities": {
-            "textDocumentSync": {
-                "openClose": true,
-                "change": 1,
-                "save": { "includeText": true },
-            },
-            "completionProvider": { "triggerCharacters": ["\""] },
-            "hoverProvider": true,
-        },
+        "capabilities": capabilities,
         "serverInfo": { "name": NAME, "version": env!("CARGO_PKG_VERSION") },
     })
 }
@@ -357,17 +367,17 @@ fn uri_of(params: &Value) -> String {
         .to_string()
 }
 
-fn is_toml(uri: &str) -> bool {
+pub(crate) fn is_toml(uri: &str) -> bool {
     Path::new(uri)
         .extension()
         .is_some_and(|extension| extension.eq_ignore_ascii_case("toml"))
 }
 
-fn response(id: Option<&Value>, result: &Value) -> Value {
+pub(crate) fn response(id: Option<&Value>, result: &Value) -> Value {
     json!({ "jsonrpc": "2.0", "id": id.cloned().unwrap_or(Value::Null), "result": result })
 }
 
-fn error(id: Option<&Value>, code: i64, message: &str) -> Value {
+pub(crate) fn error(id: Option<&Value>, code: i64, message: &str) -> Value {
     json!({
         "jsonrpc": "2.0",
         "id": id.cloned().unwrap_or(Value::Null),
@@ -448,7 +458,7 @@ mod tests {
         let mut target = server();
         let (out, _) = handle(
             &mut target,
-            &json!({"id": 3, "method": "textDocument/definition"}),
+            &json!({"id": 3, "method": "textDocument/formatting"}),
         );
 
         assert_eq!(out[0]["error"]["code"], METHOD_NOT_FOUND);
@@ -580,7 +590,9 @@ mod tests {
             1,
             "{text}"
         );
-        assert!(text.contains("phase = \"failure\""), "{text}");
+        // The phase's word is xmip-core's, never spelled here.
+        let failure = format!("phase = \"{}\"", xcore::ExecutionPhase::Failure.word());
+        assert!(text.contains(&failure), "{text}");
         assert!(text.contains("no runtime library at"), "{text}");
         let _ = std::fs::remove_dir_all(file.parent().expect("a directory"));
     }

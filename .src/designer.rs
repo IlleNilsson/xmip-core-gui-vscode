@@ -26,6 +26,7 @@ use abi::operate::design::{
 use serde_json::{Value, json};
 
 use crate::runtime::Runtime;
+use crate::text::position;
 
 /// The methods this file answers.
 pub const METHODS: [&str; 4] = [VIEWS, FILTER_STRUCTURE, FILTER_TEXT, EDIT];
@@ -98,7 +99,7 @@ pub fn answer(
     }
 }
 
-fn ask(
+pub(crate) fn ask(
     runtime: &Runtime,
     entrypoint: &str,
     input: &str,
@@ -115,7 +116,7 @@ fn ask(
     }
 }
 
-fn parsed(text: &str) -> Result<Value, Unanswered> {
+pub(crate) fn parsed(text: &str) -> Result<Value, Unanswered> {
     serde_json::from_str(text)
         .map_err(|error| Unanswered::Unavailable(format!("the runtime answered no JSON: {error}")))
 }
@@ -191,15 +192,6 @@ pub fn text_edit(old: &str, new: &str) -> Value {
         },
         "newText": &new[prefix..new.len() - suffix],
     })
-}
-
-fn position(text: &str, offset: usize) -> Value {
-    let before = &text[..offset];
-    let line = before.matches('\n').count();
-    let start = before.rfind('\n').map_or(0, |at| at + 1);
-    let character = before[start..].encode_utf16().count();
-
-    json!({ "line": line, "character": character })
 }
 
 #[cfg(test)]

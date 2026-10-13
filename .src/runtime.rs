@@ -22,6 +22,7 @@ use std::sync::{Mutex, PoisonError};
 use abi::ffi::{Str, status};
 use abi::operate::catalogue::{CatalogueFn, TECHNOLOGY_CATALOGUE_ENTRYPOINT};
 use abi::operate::design::DesignFn;
+use abi::operate::rule::{ROLE_WORDS_ENTRYPOINT, RoleWordsFn};
 use abi::operate::{ValidateFn, XMIP_VALIDATE_ENTRYPOINT};
 use libloading::{Library, Symbol};
 
@@ -217,6 +218,54 @@ impl Runtime {
             asked(|out, cap, needed| unsafe { catalogue(technology, out, cap, needed) });
 
         Ok(Answer { status, text })
+    }
+
+    /// The words a node may declare as its roles, section 7's
+    /// `xmip_role_words_v1` (`node::NodeRole`'s, ADR-0056).
+    ///
+    /// # Errors
+    /// When the library is unloaded or does not export the words.
+    // The call itself: room for the words in, static borrowed words out, in
+    // the fill shape xmip_operate.h section 5 states.
+    #[allow(unsafe_code)]
+    pub fn role_words(&self) -> Result<Vec<String>, String> {
+        let _held = self.gate.lock().unwrap_or_else(PoisonError::into_inner);
+        let library = self
+            .library
+            .as_ref()
+            .ok_or("the runtime library is unloaded")?;
+
+        // SAFETY: the header fixes the export's type.
+        let words: Symbol<RoleWordsFn> = unsafe { library.get(ROLE_WORDS_ENTRYPOINT.as_bytes()) }
+            .map_err(|_| {
+            format!(
+                "{} does not export {ROLE_WORDS_ENTRYPOINT}",
+                self.source.display()
+            )
+        })?;
+        let mut room = vec![borrowed(""); 16];
+        let mut count = 0usize;
+        loop {
+            // SAFETY: `room` has room for its length of entries and `count`
+            // is writable, as the fill shape requires.
+            let status = unsafe { words(room.as_mut_ptr(), room.len(), &raw mut count) };
+            if status != status::OK {
+                return Err(format!("{ROLE_WORDS_ENTRYPOINT} answered {status}"));
+            }
+            if count <= room.len() {
+                break;
+            }
+            room.resize(count, borrowed(""));
+        }
+        Ok(room[..count]
+            .iter()
+            .map(|word| {
+                // SAFETY: each word is static UTF-8 the runtime owns, at its
+                // stated length.
+                let bytes = unsafe { std::slice::from_raw_parts(word.ptr, word.len) };
+                String::from_utf8_lossy(bytes).into_owned()
+            })
+            .collect())
     }
 }
 

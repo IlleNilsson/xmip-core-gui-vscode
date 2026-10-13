@@ -25,8 +25,9 @@ pub const TECHNOLOGIES: &str = "xmip/technologies";
 const COMPLETION: &str = "textDocument/completion";
 const HOVER: &str = "textDocument/hover";
 
-/// The methods this file answers.
-pub const METHODS: [&str; 3] = [COMPLETION, HOVER, TECHNOLOGIES];
+/// The request this file answers itself; its completion and hover are
+/// answered through `language.rs`, beside the cluster file's own.
+pub const METHODS: [&str; 1] = [TECHNOLOGIES];
 
 /// What `method` answers when the runtime cannot: nothing offered, for a
 /// completion or a hover; `None` for the request, which says why.
@@ -114,6 +115,15 @@ const LOCATIONS: [(&str, &str); 4] = [
     ("applications.send_ports", "send"),
 ];
 
+/// An array as a node's own table holds it, without `nodes.<name>.`: a
+/// node's own Location is written in the same arrays as the cluster's.
+fn own(array: &str) -> &str {
+    array
+        .strip_prefix("nodes.")
+        .and_then(|rest| rest.split_once('.'))
+        .map_or(array, |(_, own)| own)
+}
+
 /// Where `line`, at `character`, is in `text`.
 #[must_use]
 pub fn place(text: &str, line: usize, character: usize) -> Option<Place> {
@@ -148,7 +158,7 @@ pub fn place(text: &str, line: usize, character: usize) -> Option<Place> {
     };
     let side = LOCATIONS
         .iter()
-        .find(|(name, _)| *name == array)
+        .find(|(name, _)| *name == own(array))
         .map(|(_, side)| *side)?;
 
     let opening = format!("[[{array}]]");

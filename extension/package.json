@@ -1,7 +1,7 @@
 {
   "name": "xmip",
   "displayName": "Xmip",
-  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it, and designs the cluster's one xmip.toml artifact by artifact.",
+  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it; suggests every key and value, looks up definitions and references, creates, renames and deletes entries and fixes what the runtime reports; and designs the cluster's one xmip.toml view by view.",
   "version": "0.1.0",
   "publisher": "IlleNilsson",
   "license": "AGPL-3.0-or-later",
@@ -30,6 +30,18 @@
       {
         "command": "xmip.openDesigner",
         "title": "Xmip: Open in the cluster designer"
+      },
+      {
+        "command": "xmip.add",
+        "title": "Xmip: Add to the cluster's xmip.toml"
+      },
+      {
+        "command": "xmip.rename",
+        "title": "Xmip: Rename in the cluster's xmip.toml"
+      },
+      {
+        "command": "xmip.delete",
+        "title": "Xmip: Delete from the cluster's xmip.toml"
       }
     ],
     "customEditors": [

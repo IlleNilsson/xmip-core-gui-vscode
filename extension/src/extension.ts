@@ -4,7 +4,8 @@
 // validates anything: that is the server's, through the runtime's C ABI.
 // The designer (ADR-0064, amendment 2026-10-03) is a view of the cluster's
 // one xmip.toml, registered here and carried in designer.ts; it holds no
-// rule either.
+// rule either. The commands that create, rename and delete (commands.ts)
+// ask what the server says to ask and run the server's command.
 //
 // This is the one place in the estate where TypeScript lives (the same
 // amendment). Anything that could be done in the Rust server is done there.
@@ -15,6 +16,7 @@ import {
   type LanguageClientOptions,
   type ServerOptions,
 } from "vscode-languageclient/node";
+import { registerCommands } from "./commands.js";
 import { ClusterDesigner, viewType } from "./designer.js";
 
 /** What `xmip/validate` answers: the runtime's own report, whole. */
@@ -34,6 +36,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand("xmip.validate", () => validate(output)),
     vscode.commands.registerCommand("xmip.openDesigner", () => openDesigner()),
+    ...registerCommands(() => client),
     vscode.window.registerCustomEditorProvider(
       viewType,
       new ClusterDesigner(context.extensionUri, () => client),
