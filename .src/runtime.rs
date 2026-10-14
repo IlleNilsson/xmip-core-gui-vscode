@@ -391,20 +391,20 @@ mod tests {
 
         let good = runtime.validate(&sample_cluster()).expect("calls");
         assert!(good.is_valid(), "unexpected report: {}", good.report);
-        assert!(good.report.is_empty());
+        assert_eq!(good.report, "");
 
         let broken = runtime
             .validate("[service]\nname = \"edge\"\ndata = \"../data/one\n")
             .expect("calls");
         assert_eq!(broken.status, status::INVALID);
-        assert!(!broken.report.is_empty());
+        assert_ne!(broken.report, "");
         assert!(broken.report.contains("line 3"), "{}", broken.report);
 
         let incomplete = runtime
             .validate("[service]\nname = \"edge\"\n")
             .expect("calls");
         assert_eq!(incomplete.status, status::INVALID);
-        assert!(!incomplete.report.is_empty());
+        assert_ne!(incomplete.report, "");
 
         let copy = runtime.copy.clone();
         assert!(copy.is_file(), "loaded from a copy");

@@ -297,10 +297,14 @@ mod tests {
         let kinds = kinds
             .map(|view| view["kind"].as_str().expect("kind"))
             .collect::<Vec<_>>();
-        assert_eq!(kinds.len(), 13);
+        // The kinds and their order are the runtime's, held by xmip-core-configure's
+        // own test; here the designer only needs the views it lays out.
         assert_eq!(kinds[0], "cluster");
-        let route = &views["views"][10];
-        assert_eq!(route["kind"], "route");
+        let of = |wanted: &str| {
+            let at = kinds.iter().position(|kind| *kind == wanted).expect(wanted);
+            &views["views"][at]
+        };
+        let route = of("route");
         let routes = &route["entries"][0]["routes"];
 
         let ids = routes["nodes"].as_array().expect("nodes").iter();
@@ -322,12 +326,12 @@ mod tests {
         assert_eq!(routes["operators"][0], "=");
         assert_eq!(routes["kinds"][3], "expression");
         assert_eq!(
-            views["views"][3]["entries"][0]["section"],
+            of("receive-location")["entries"][0]["section"],
             json!(["receive_locations", "drop"])
         );
-        assert_eq!(views["views"][2]["defined"], true);
+        assert_eq!(of("receive-port")["defined"], true);
         assert_eq!(
-            views["views"][2]["entries"][0]["section"],
+            of("receive-port")["entries"][0]["section"],
             json!(["xmip_applications", "Orders", "receive_ports", "Orders"])
         );
     }

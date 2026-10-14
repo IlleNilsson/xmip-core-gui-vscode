@@ -121,8 +121,8 @@ mod tests {
 
     #[test]
     fn an_empty_report_is_an_empty_list() {
-        assert!(diagnostics("", DOCUMENT).is_empty());
-        assert!(diagnostics("\n  \n", DOCUMENT).is_empty());
+        assert_eq!(diagnostics("", DOCUMENT), [] as [Value; 0]);
+        assert_eq!(diagnostics("\n  \n", DOCUMENT), [] as [Value; 0]);
     }
 
     #[test]

@@ -464,7 +464,7 @@ mod tests {
         assert_eq!(out[0]["error"]["code"], METHOD_NOT_FOUND);
 
         let (out, _) = handle(&mut target, &json!({"method": "$/cancelRequest"}));
-        assert!(out.is_empty());
+        assert_eq!(out, [] as [Value; 0]);
     }
 
     #[test]
@@ -497,7 +497,7 @@ mod tests {
                 "uri": "file:///c:/node/notes.md", "text": "# notes\n"}}}),
         );
 
-        assert!(out.is_empty());
+        assert_eq!(out, [] as [Value; 0]);
         assert_eq!(target.documents.len(), 1);
     }
 
@@ -529,11 +529,12 @@ mod tests {
             &mut target,
             &json!({"method": "textDocument/didClose", "params": {"textDocument": {"uri": uri}}}),
         );
-        assert!(
+        assert_eq!(
             out[0]["params"]["diagnostics"]
                 .as_array()
                 .expect("a list")
-                .is_empty()
+                .as_slice(),
+            [] as [Value; 0]
         );
         assert!(target.documents.is_empty());
     }
@@ -610,11 +611,6 @@ mod tests {
         );
 
         assert_eq!(out[0]["result"]["valid"], false);
-        assert!(
-            !out[0]["result"]["report"]
-                .as_str()
-                .expect("text")
-                .is_empty()
-        );
+        assert_ne!(out[0]["result"]["report"].as_str().expect("text"), "");
     }
 }
