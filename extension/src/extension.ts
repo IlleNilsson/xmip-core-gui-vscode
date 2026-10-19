@@ -30,7 +30,9 @@ interface Validation {
 let client: LanguageClient | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const output = vscode.window.createOutputChannel("Xmip");
+  // A log channel: the language client writes its own trace to the channel it
+  // is handed, and since vscode-languageclient 10 that is a LogOutputChannel.
+  const output = vscode.window.createOutputChannel("Xmip", { log: true });
   context.subscriptions.push(output);
 
   context.subscriptions.push(
@@ -58,7 +60,7 @@ export async function deactivate(): Promise<void> {
 }
 
 /** Start the server from the current settings; stop the one running first. */
-async function start(output: vscode.OutputChannel): Promise<void> {
+async function start(output: vscode.LogOutputChannel): Promise<void> {
   await client?.stop();
 
   const settings = vscode.workspace.getConfiguration("xmip");
@@ -79,7 +81,7 @@ async function start(output: vscode.OutputChannel): Promise<void> {
 }
 
 /** The command: validate the active document on demand and print the report. */
-async function validate(output: vscode.OutputChannel): Promise<void> {
+async function validate(output: vscode.LogOutputChannel): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (editor === undefined || client === undefined) {
     void vscode.window.showInformationMessage("Xmip: open a node configuration first.");
