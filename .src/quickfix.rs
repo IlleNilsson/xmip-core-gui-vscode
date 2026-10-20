@@ -185,14 +185,16 @@ mod tests {
     #[test]
     fn the_nearest_key_is_offered_only_where_it_is_near() {
         let known = ["address", "transport", "start"];
+        // A key spelled wrong on purpose: address with one d.
+        let wrong = "address".replacen("dd", "d", 1);
         assert_eq!(
-            nearest("adress", known.into_iter()).as_deref(),
+            nearest(&wrong, known.into_iter()).as_deref(),
             Some("address")
         );
-        assert_eq!(nearest("colour", known.into_iter()), None);
+        assert_eq!(nearest("color", known.into_iter()), None);
         assert_eq!(
-            quoted("unknown field `adress`, expected one of `a`"),
-            ["adress", "a"]
+            quoted(&format!("unknown field `{wrong}`, expected one of `a`")),
+            [wrong.as_str(), "a"]
         );
     }
 }

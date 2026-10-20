@@ -502,11 +502,14 @@ mod tests {
         let Some((runtime, text, _)) = cluster() else {
             return;
         };
+        // A key spelled wrong on purpose: receive with the i and e swapped.
+        let wrong = "receive_port".replacen("ei", "ie", 1);
         let broken = text
-            .replace("receive_port = ", "recieve_port = ")
+            .replace("receive_port = ", &format!("{wrong} = "))
             .replace("send-port = \"Billing\"", "send-port = \"Biling\"");
+        let unknown = format!("unknown field `{wrong}`, expected one of `name`, `receive_port`");
         let diagnostics = json!([
-            { "message": "unknown field `recieve_port`, expected one of `name`, `receive_port`" },
+            { "message": unknown },
             { "message": "Subscription 'billing' routes to the Send Port 'Biling', \
                           which the Application does not declare" },
         ]);

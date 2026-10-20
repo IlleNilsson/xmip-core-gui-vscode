@@ -2,7 +2,7 @@
 //!
 //! A message in, zero or more messages out, and the process ends when the
 //! client says so. Documents are held whole — the server asks for full
-//! synchronisation — because validation needs the whole text and a
+//! synchronization — because validation needs the whole text and a
 //! cluster's file or a node configuration is small. Only documents named
 //! `.toml` are validated, and the runtime tells the two apart; the rest are
 //! held and never reported on. The designer's requests, over the cluster's
@@ -144,7 +144,7 @@ impl Server {
     fn changed(&mut self, params: &Value, out: &mut Vec<Value>) {
         let uri = uri_of(params);
 
-        // Full synchronisation: the last change carries the whole text.
+        // Full synchronization: the last change carries the whole text.
         if let Some(text) = params["contentChanges"]
             .as_array()
             .and_then(|changes| changes.last())
@@ -425,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    fn initialize_answers_with_full_synchronisation_and_the_server_name() {
+    fn initialize_answers_with_full_synchronization_and_the_server_name() {
         let (out, exit) = handle(
             &mut server(),
             &json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),

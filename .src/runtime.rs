@@ -94,7 +94,7 @@ impl Runtime {
             .map_err(|error| format!("could not copy {} for loading: {error}", path.display()))?;
 
         // SAFETY: the file is a copy of the runtime the developer named, and
-        // the estate's runtime has no load-time behaviour beyond the loader's.
+        // the estate's runtime has no load-time behavior beyond the loader's.
         let library = unsafe { Library::new(&copy) }
             .map_err(|error| format!("{} could not be loaded: {error}", path.display()))?;
 
