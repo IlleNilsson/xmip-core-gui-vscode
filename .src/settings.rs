@@ -51,6 +51,7 @@ pub fn answer(
     method: &str,
     params: &Value,
     document: Option<&str>,
+    units: &[Value],
 ) -> Result<Value, Unanswered> {
     if method == TECHNOLOGIES {
         return catalogue(runtime, params["technology"].as_str().unwrap_or_default());
@@ -68,7 +69,21 @@ pub fn answer(
     let Some(place) = place(text, line, character) else {
         return Ok(quiet(method).unwrap_or_default());
     };
-    let catalogue = catalogue(runtime, "")?;
+    let mut catalogue = catalogue(runtime, "")?;
+    if catalogue["technologies"].is_null() {
+        catalogue["technologies"] = json!([]);
+    }
+    // Beside the technologies the runtime carries, every compiled unit the
+    // file's modules declare, in the same declaration shape.
+    if let Some(technologies) = catalogue["technologies"].as_array_mut() {
+        technologies.extend(units.iter().filter_map(|unit| {
+            let settings = unit.get("settings")?;
+            Some(
+                json!({ "technology": settings["technology"], "capability": unit["capability"],
+                         "settings": settings["settings"] }),
+            )
+        }));
+    }
 
     Ok(if method == COMPLETION {
         json!(completion(&catalogue, &place))
@@ -115,6 +130,16 @@ const LOCATIONS: [(&str, &str); 4] = [
     ("applications.send_ports", "send"),
 ];
 
+/// The lists of calls to compiled units, whose `settings` their unit
+/// declares (ADR-0066, amendment 2026-10-22).
+const CALLS: [&str; 5] = [
+    "preparation_steps",
+    "promotions",
+    "demotions",
+    "transformations",
+    "work_processes",
+];
+
 /// An array as a node's own table holds it, without `nodes.<name>.`: a
 /// node's own Location is written in the same arrays as the cluster's.
 fn own(array: &str) -> &str {
@@ -156,17 +181,34 @@ pub fn place(text: &str, line: usize, character: usize) -> Option<Place> {
     } else {
         (table.strip_suffix(".settings")?, "transport")
     };
-    let side = LOCATIONS
-        .iter()
-        .find(|(name, _)| *name == own(array))
-        .map(|(_, side)| *side)?;
-
     let opening = format!("[[{array}]]");
-    let technology = lines[..header_line]
+    let entry = lines[..header_line]
         .iter()
         .rev()
-        .take_while(|text| text.trim() != opening)
-        .find_map(|text| value_of(text, key));
+        .take_while(|text| text.trim() != opening);
+    let called = own(array)
+        .strip_prefix("xmip_applications.")
+        .unwrap_or(own(array));
+    let (side, technology) = if CALLS.contains(&called) && key == "transport" {
+        // A call to a compiled unit: its unit's declaration, by the name
+        // the runtime's views give it, `<module> unit <unit>`.
+        let entry: Vec<&&str> = entry.collect();
+        let module = entry.iter().find_map(|text| value_of(text, "module"));
+        let unit = entry.iter().find_map(|text| value_of(text, "unit"));
+        (
+            "both",
+            module
+                .zip(unit)
+                .map(|(module, unit)| format!("{module} unit {unit}")),
+        )
+    } else {
+        let side = LOCATIONS
+            .iter()
+            .find(|(name, _)| *name == own(array))
+            .map(|(_, side)| *side)?;
+        let mut entry = entry;
+        (side, entry.find_map(|text| value_of(text, key)))
+    };
     let written = lines[header_line + 1..]
         .iter()
         .take_while(|text| !text.trim_start().starts_with('['))
@@ -364,6 +406,27 @@ mod tests {
             }
         );
         assert_eq!(place_outside(), None);
+    }
+
+    #[test]
+    fn a_calls_settings_table_is_its_units_declaration() {
+        let text = "[[xmip_applications.preparation_steps]]\nname = \"Unzip\"\n\
+                    module = \"codecs\"\nunit = \"Codec\"\n\
+                    [xmip_applications.preparation_steps.settings]\n\n";
+        let place = place(text, 5, 0).expect("in the table");
+        assert_eq!(
+            place,
+            Place::Settings {
+                side: "both",
+                technology: Some("codecs unit Codec".to_string()),
+                written: Vec::new(),
+            }
+        );
+        let catalogue = json!({ "technologies": [{ "technology": "codecs unit Codec",
+            "settings": [{ "name": "format", "kind": "text", "presence": "optional",
+                           "meaning": "How it is compressed.", "applies": "both" }] }] });
+        let items = completion(&catalogue, &place);
+        assert_eq!(items[0]["label"], "format");
     }
 
     fn place_outside() -> Option<Place> {

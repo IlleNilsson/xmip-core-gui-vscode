@@ -105,11 +105,6 @@ nav .chosen > button {
   background: var(--vscode-list-activeSelectionBackground);
 }
 
-nav .kind.undefined {
-  color: var(--vscode-descriptionForeground);
-  font-style: italic;
-}
-
 #view {
   flex: 1 1 auto;
   min-width: 0;

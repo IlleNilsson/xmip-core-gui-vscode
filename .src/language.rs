@@ -113,15 +113,21 @@ pub fn answer(
         .unwrap_or_default();
     let answered = match method {
         COMPLETION => {
-            let mut items = settings::answer(runtime, COMPLETION, params, Some(&model.text))
-                .ok()
-                .and_then(|items| items.as_array().cloned())
-                .unwrap_or_default();
+            let mut items = settings::answer(
+                runtime,
+                COMPLETION,
+                params,
+                Some(&model.text),
+                model.units(),
+            )
+            .ok()
+            .and_then(|items| items.as_array().cloned())
+            .unwrap_or_default();
             let roles = || runtime.role_words().unwrap_or_default();
             items.extend(completion::completion(model, at, &roles));
             json!(items)
         }
-        HOVER => match settings::answer(runtime, HOVER, params, Some(&model.text)) {
+        HOVER => match settings::answer(runtime, HOVER, params, Some(&model.text), model.units()) {
             Ok(said) if !said.is_null() => said,
             _ => lookup::hover(model, at).unwrap_or(Value::Null),
         },
@@ -551,5 +557,29 @@ mod tests {
             .map(|a| a["edit"].clone())
             .expect("the name's fix");
         assert_eq!(applied(&once, &name), text);
+    }
+
+    #[test]
+    fn an_accepted_party_and_an_attached_call_are_suggested_by_name() {
+        let Some((runtime, text, first)) = cluster() else {
+            return;
+        };
+        let text = format!(
+            "[[parties]]\nid = \"0192f000-0000-7000-8000-000000000001\"\nname = \"partner\"\n\
+             identities = []\n\n{text}\n[[nodes.{first}.receive_locations]]\nname = \"in\"\n\
+             transport = \"t\"\naddress = \"a\"\n\
+             [nodes.{first}.receive_locations.accept]\nparty = [\"\"]\n"
+        );
+        let suggested = labels(
+            &ask(
+                &runtime,
+                &text,
+                COMPLETION,
+                at(&text, "party = [\"", 10),
+                &json!({}),
+            ),
+            "label",
+        );
+        assert_eq!(suggested, ["partner"]);
     }
 }

@@ -138,6 +138,15 @@ void test("the page loads one script by nonce and one stylesheet, nothing inline
   assert.doesNotMatch(webview.html, /<script(?![^>]*src=)/);
 });
 
+void test("the page reaches nothing online: only the extension's own resources", async () => {
+  await designer(new ScriptedClient({}));
+
+  // ADR-0014, amendment 2026-10-22: nothing the extension runs is fetched.
+  assert.match(webview.html, /default-src 'none'/);
+  assert.doesNotMatch(webview.html, /(src|href)="https?:/);
+  assert.doesNotMatch(webview.html, /https?:\/\/(?!www\.w3\.org)/);
+});
+
 void test("ready asks for the views of the text as it is and posts them", async () => {
   posted.length = 0;
   const views = { cluster: "", views: [{ kind: "cluster", entries: [] }] };

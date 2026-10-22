@@ -30,8 +30,11 @@ configuration** (`xmip/validate` to the server) prints the whole report to the
 Xmip output channel, with the runtime that produced it.
 
 The runtime library is the one the `--runtime <path>` flag names, which the
-extension passes from its `xmip.runtime.library` setting; with none named,
-every validation says so. The server finds no library on its own: runtime
+extension passes from its `xmip.runtime.library` setting, required (the
+owner, 2026-10-22); with none named, every validation says where to point
+it — the full path of `xmip_core_runtime.dll`, `libxmip_core_runtime.so` or
+`libxmip_core_runtime.dylib`, which `cargo build` leaves in
+`module/platform/runtime/target/debug`. The server finds no library on its own: runtime
 discovery is one rule, the .NET surfaces' `RuntimeLibrary`, because a surface
 has to find the runtime before it can call anything in it, and the copy of
 that rule this server kept in Rust went on 2026-09-24 (ADR-0052, amendment of
@@ -119,8 +122,12 @@ change is `xmip_cluster_edit_v1`'s (`rename`, `remove-entry`, `refer`,
 `src/commands.ts` asks the developer only what the server sends it to ask
 (`xmip/places`, `xmip/entries`) and runs the server's commands
 (`xmip.server.add`, `xmip.server.rename`, `xmip.server.edit`), which the
-language client registers. Parties are not in the configuration yet, so
-none is suggested.
+language client registers. A Receive Location's `accept.party` suggests the
+Parties `[[parties]]` declares; a call to a compiled unit suggests its
+module, the units of that module that fit, and in its `settings` what its
+unit declares; and a Port's or Location's `prepare`, `transform`, `promote`
+and `demote` suggest the calls whose unit serves its stage (ADR-0066,
+amendment 2026-10-22).
 
 ## The cluster designer
 
@@ -137,14 +144,19 @@ designer**. The text editor and the designer are two views of one document,
 and a change in either shows in the other.
 
 The designer is one view per artifact kind, navigated by kind and then
-entry: Cluster, Node, Receive Port, Receive Location, Send Port, Send
-Location, Send Port Group, Prepare, Promote, Demote, Route, Transformation
-and Process. Each lists the entries the file holds of it — wherever it holds
-them: the cluster's shared sections, a node's own under `[nodes.<name>]`, a
-binding, or an Xmip Application held as `[[xmip_applications]]` — with its
-values as the file writes them, each edited in place, a value added or
-removed, an entry added to any list that may hold one, a node declared, and
-an entry or node removed. A Route entry is an Xmip Application: its routes
+entry: Cluster, Node, Party, Module, Receive Port, Receive Location, Send
+Port, Send Location, Send Port Group, Prepare, Promote, Demote, Route,
+Transformation and Work Process. Each lists the entries the file holds of
+it — wherever it holds them: the cluster's shared sections, a node's own
+under `[nodes.<name>]`, a binding, or an Xmip Application held as
+`[[xmip_applications]]` — with its values as the file writes them, each
+edited in place, a value added or removed, an entry added to any list that
+may hold one, a node declared, and an entry or node removed. What may be
+set on an entry is the runtime's offer: each key its table may hold and
+does not write, with its kind, whether it is required and the words or
+names its value may take, picked from a list; a Party's identities are
+added one at a time, each its mechanism, purpose and value, and a new
+Party's `id` is minted by the runtime as it is added. A Route entry is an Xmip Application: its routes
 drawn — Receive Locations, Subscriptions, Work Processes, Send Port Groups
 and Send Ports, and what routes where — and a Subscription's filter edited
 as rows of property, operator, value and kind gathered in And and Or
@@ -153,11 +165,15 @@ Xmip's expression language (ADR-0066). A Receive Port entry is an
 Application's `[[xmip_applications.receive_ports]]`, and each Receive
 Location of an Application names its `receive_port` and states its
 `interaction` and `depth` (ADR-0031, amendment 2026-10-01). Prepare,
-Promote, Demote and Transformation are present and say plainly that the
-configuration does not define them yet; Process shows the
-`[[work_processes]]` entries and says that a Process's flow is not defined
-yet. Which kinds exist, which the configuration defines, where an entry is
-and what an edit does are the server's: the designer holds no rule.
+Promote, Demote and Transformation list the calls to compiled units —
+`[[preparation_steps]]`, `[[promotions]]`, `[[demotions]]` and
+`[[transformations]]`, each a module, a unit and its settings — and Module
+the `[[modules]]` whose manifests declare those units, each with the
+stages it serves and `offline = true`; Work Process lists the
+`[[work_processes]]`, each naming the unit that is its flow (ADR-0066,
+amendment 2026-10-22). Which kinds exist, where an entry is, what may be
+set on it and what an edit does are the runtime's: the designer holds no
+rule.
 
 The webview (`extension/webview/`, vanilla TypeScript and SVG:
 `designer.ts` the navigation and the entries, `routes.ts` the Route view,
@@ -176,8 +192,9 @@ which forward to `xmip-core-configure` (`views.rs`, `view_edit.rs`):
 - `xmip/edit` — set or remove a value, add or remove an entry, declare a
   node, or one of an Application's own edits (declare a Receive Location,
   a Work Process or a Send Port, add a Subscription, set its filter,
-  connect it to a target); answered as the one text edit that makes the
-  change, so the webview never writes TOML. An edit that would leave a node
+  connect it to a target), or add an element to an array of unnamed
+  tables (`add-element`, a Party's identity); answered as the one text edit
+  that makes the change, so the webview never writes TOML. An edit that would leave a node
   that read unable to read, or an Application section that read unable to,
   is refused in the reader's words.
 
@@ -207,18 +224,32 @@ and every edit. Until
 2026-09-26 they looked three levels up, where no runtime is, and skipped
 without saying so to anyone who did not read the output.
 
-The shell: `npm ci`, then `npm run compile`, `npm run lint` and `npm test`
-in `extension/`, which needs Node.js — the only repository in the estate that
-does. The test runs in plain node, offline, with the `vscode` API and the
-language client replaced by recording stubs: it checks that activation
-registers the commands and the designer and starts the server from the
-settings, and that the designer carries the webview's messages to the
-server and applies the text edit it answers — and nothing the server does.
-`npm run compile` builds the webview with its own `webview/tsconfig.json`,
-for the browser. Then point the `xmip.server.path` setting at
-`target/debug/xmip-lsp` and press F5 in `extension/` to run it in an
-Extension Development Host.
+The shell is built with no Node.js (the owner, 2026-10-22; ADR-0014,
+amendment 2026-10-22): `Build-XmipService -Extension VsCode`, from the
+estate's PowerShell module, restores the packages it compiles against and
+runs with from `extension/package-lock.json` — each tarball checked against
+the lock's integrity — compiles the shell and its webview (`tsconfig.json`,
+`webview/tsconfig.json`, for the browser) with TypeScript 7's native
+compiler, `prerequisite.toml`'s `[archive.typescript]`, and zips the VSIX
+by PowerShell into `.local-work/package/vscode`: `extension.vsixmanifest`,
+`[Content_Types].xml` and `extension/`. No vsce. The landing compiles the
+same way and says SKIPPED where the compiler is absent. The shell is
+TypeScript, its ESLint configuration too (`eslint.config.ts`); the estate
+holds no hand-written JavaScript (the root's `test/JavaScript.Test.ps1`).
+Nothing the extension runs is fetched: the webview loads only its own files,
+and no schema, catalogue, icon, font or package is reached for at run time.
 
+Every rule is the Rust server's and tested in Rust. The shell's lint and its
+tests run in this repository's CI alone (`.github/workflows/verify.yml`),
+where Node.js lives in a throwaway runner: `npm ci`, `npm run compile` with
+TypeScript 6, which the latest typescript-eslint still needs, `npm run lint`
+and `npm test`, which runs in plain node with the `vscode` API and the
+language client replaced by recording stubs — that activation registers the
+commands and the designer and starts the server from the settings, that the
+designer carries the webview's messages to the server and applies the text
+edit it answers, and that its page reaches nothing online. Locally they are
+SKIPPED. Then point the `xmip.server.path` setting at
+`target/debug/xmip-lsp` and install the VSIX (`code --install-extension`).
 ## Shared governance
 
 Licensing is explicit in [LICENSE](LICENSE). Contribution, security, support,

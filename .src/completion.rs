@@ -229,17 +229,23 @@ fn snippet(kind: &str, choices: &[String]) -> String {
     }
 }
 
-/// The names a reference at `key` of the table at `section` may take.
+/// The names a reference at `key` of the table at `section` may take; in a
+/// sub-table, such as a Location's `[accept]`, the reference its entry holds
+/// under the sub-table's key.
 fn reference_choices(model: &Model, section: &[String], key: &[String]) -> Option<Vec<String>> {
-    let found: BTreeSet<String> = model
-        .references()
-        .iter()
-        .filter(|reference| {
-            strings(&reference["holder"]) == section && strings(&reference["key"]) == key
-        })
-        .flat_map(|reference| strings(&reference["choices"]))
-        .collect();
-    (!found.is_empty()).then(|| found.into_iter().collect())
+    (0..section.len()).rev().find_map(|keep| {
+        let holder = &section[..=keep];
+        let key = [&section[keep + 1..], key].concat();
+        let found: BTreeSet<String> = model
+            .references()
+            .iter()
+            .filter(|reference| {
+                strings(&reference["holder"]) == holder && strings(&reference["key"]) == key
+            })
+            .flat_map(|reference| strings(&reference["choices"]))
+            .collect();
+        (!found.is_empty()).then(|| found.into_iter().collect())
+    })
 }
 
 /// A key's value: the names a reference takes, a choice's words, a role

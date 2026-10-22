@@ -74,8 +74,8 @@ Desktop.ini
 logs/
 **/logs/
 
-# The extension's Node.js toolchain and its output — this repository is the
-# one place in the estate that has any (ADR-0014, amendment 2026-09-10).
+# The packages the extension's build restores from its lock, and its output:
+# build output, never tracked (ADR-0014, amendments 2026-09-10 and 2026-10-22).
 node_modules/
 extension/out/
 *.vsix

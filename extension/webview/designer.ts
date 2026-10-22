@@ -1,12 +1,11 @@
-// The designer's webview (ADR-0064, amendment 2026-10-03): the cluster's one
-// xmip.toml, a view per artifact kind — Cluster, Node, Receive Port, Receive
-// Location, Send Port, Send Location, Send Port Group, Prepare, Promote,
-// Demote, Route, Transformation, Work Process — navigated by kind, then entry.
-// Each entry's values are shown as the file writes them and edited in
-// place; a Route entry is an Xmip Application, drawn by routes.ts. It holds
-// no rule: which kinds exist, where an entry is, whether the configuration
-// defines a kind and what an edit does to the text are all xmip-lsp's, and
-// the TOML is only ever written there.
+// The designer's webview (ADR-0064, amendments 2026-10-03 and 2026-10-22): the
+// cluster's one xmip.toml, a view per artifact kind, navigated by kind, then
+// entry. Each entry's values are shown as the file writes them and edited in
+// place, and what may be set on it is offered; a Route entry is an Xmip
+// Application, drawn by routes.ts. It holds no rule: which kinds exist, where
+// an entry is, which keys an entry may take and the words or names each may
+// take, and what an edit does to the text are all xmip-lsp's, and the TOML is
+// only ever written there.
 
 import { button, byId, edit, host, html, tell } from "./dom.js";
 import { type Part, type Routes, filterStructureAnswered, filterTextAnswered, showRoutes } from "./routes.js";
@@ -16,11 +15,22 @@ interface Field {
   value: string;
   kind: string;
 }
+/** A key the server offers to set on an entry, and what it may take. */
+interface Offered {
+  key: string;
+  kind: string;
+  required: boolean;
+  choices: string[];
+  meaning?: string;
+  /** The keys one element of an array of unnamed tables holds. */
+  elements?: Offered[];
+}
 interface Entry {
   section: string[];
   name: string;
   scope: string;
   fields: Field[];
+  offered?: Offered[];
   routes?: Routes;
   problems?: string[];
 }
@@ -31,7 +41,6 @@ interface Place {
 interface View {
   kind: string;
   title: string;
-  defined: boolean;
   note?: string;
   entries: Entry[];
   places: Place[];
@@ -81,9 +90,9 @@ function drawKinds(): void {
   kinds.replaceChildren();
   for (const view of views?.views ?? []) {
     const item = html("li", undefined, view.kind === kind ? "chosen" : undefined);
-    const label = view.defined ? `${view.title} (${view.entries.length})` : view.title;
+    const label = `${view.title} (${view.entries.length})`;
     const open = button(label, () => choose(view.kind, undefined));
-    open.className = view.defined ? "kind" : "kind undefined";
+    open.className = "kind";
     item.append(open);
     if (view.kind === kind && view.entries.length > 0) {
       const list = html("ul");
@@ -105,10 +114,7 @@ function drawKinds(): void {
 function drawKind(view: View): void {
   shown.append(html("h2", view.title));
   if (view.note !== undefined) {
-    shown.append(html("p", view.note, view.defined ? "hint" : "undefined"));
-  }
-  if (!view.defined) {
-    return;
+    shown.append(html("p", view.note, "hint"));
   }
   if (view.entries.length === 0) {
     shown.append(html("p", "The file holds none.", "hint"));
@@ -177,10 +183,30 @@ function drawEntry(view: View, chosen: Entry): void {
   }
   shown.append(table);
 
+  // What may be set, as the server offers it: a key's kind, whether it is
+  // required, and the words or names its value may take.
+  const offered = chosen.offered ?? [];
+  const keys = html("datalist");
+  keys.id = "offered-keys";
+  for (const one of offered) {
+    keys.append(new Option(`${one.kind}${one.required ? " · required" : ""}`, one.key));
+  }
+  const values = html("datalist");
+  values.id = "offered-values";
   const key = html("input");
   key.placeholder = "key, a.b for a sub-table";
+  key.setAttribute("list", keys.id);
   const value = html("input");
   value.placeholder = "value in TOML: \"text\", 4, true";
+  value.setAttribute("list", values.id);
+  key.addEventListener("input", () => {
+    values.replaceChildren();
+    const one = offered.find((candidate) => candidate.key === key.value);
+    for (const choice of one?.choices ?? []) {
+      values.append(new Option(choice, `"${choice}"`));
+    }
+  });
+  shown.append(keys, values);
   const add = button("Set", () =>
     edit({ set: { section: chosen.section, key: key.value.split("."), value: value.value } }),
   );
@@ -191,11 +217,45 @@ function drawEntry(view: View, chosen: Entry): void {
   actions.append(key, value, add, remove);
   shown.append(actions);
 
+  for (const list of offered.filter((one) => (one.elements ?? []).length > 0)) {
+    drawElement(chosen, list);
+  }
+
   if (chosen.routes !== undefined) {
     const drawing = html("section", undefined, "routes");
     shown.append(html("h3", "Routes"), drawing);
     showRoutes(drawing, chosen.routes);
   }
+}
+
+/** A form adding one element to an array of unnamed tables, such as a
+ * Party's identity: one value for each key the server offers, in TOML. */
+function drawElement(chosen: Entry, list: Offered): void {
+  const row = html("div", undefined, "actions");
+  const inputs: [Offered, HTMLInputElement][] = [];
+  for (const inner of list.elements ?? []) {
+    const value = html("input");
+    value.placeholder = `${inner.key}${inner.required ? " (required)" : ""}, in TOML`;
+    if (inner.choices.length > 0) {
+      const words = html("datalist");
+      words.id = `offered-${list.key}-${inner.key}`;
+      for (const choice of inner.choices) {
+        words.append(new Option(choice, `"${choice}"`));
+      }
+      value.setAttribute("list", words.id);
+      row.append(words);
+    }
+    inputs.push([inner, value]);
+    row.append(value);
+  }
+  const add = button(`Add to ${list.key}`, () => {
+    const values = inputs
+      .filter(([, value]) => value.value !== "")
+      .map(([inner, value]) => ({ key: [inner.key], value: value.value }));
+    edit({ "add-element": { section: chosen.section, key: [list.key], values } });
+  });
+  row.append(add);
+  shown.append(html("h3", `Add to ${list.key}`), row);
 }
 
 function draw(): void {

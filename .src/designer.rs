@@ -5,7 +5,8 @@
 //! Four custom requests, each one of `xmip_operate.h` section 10's exports:
 //!
 //! - `xmip/views` `{ text }` — the cluster's file as one view per artifact
-//!   kind, each Xmip Application's routes given their places on the canvas;
+//!   kind, each Xmip Application's routes given their places on the canvas,
+//!   and each entry what may be set on it, as the runtime offers it;
 //! - `xmip/filterStructure` `{ filter }` — a filter's text as rows and groups;
 //! - `xmip/filterText` `{ structure }` — rows and groups as the filter's text;
 //! - `xmip/edit` `{ text, edit }` — an edit to the file, answered as the one
@@ -329,7 +330,10 @@ mod tests {
             of("receive-location")["entries"][0]["section"],
             json!(["receive_locations", "drop"])
         );
-        assert_eq!(of("receive-port")["defined"], true);
+        assert!(
+            of("receive-location")["entries"][0]["offered"].is_array(),
+            "offered"
+        );
         assert_eq!(
             of("receive-port")["entries"][0]["section"],
             json!(["xmip_applications", "Orders", "receive_ports", "Orders"])

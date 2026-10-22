@@ -42,8 +42,11 @@ pub(crate) const RUNTIME_UNAVAILABLE: i64 = -32001;
 pub(crate) const REFUSED: i64 = -32002;
 
 /// What every validation says when no runtime library was named.
-pub const NOT_NAMED: &str = "no runtime library was named: set xmip.runtime.library to the \
-    runtime's native library, or start the server with --runtime <path>";
+pub const NOT_NAMED: &str = "no runtime library was named: set the setting xmip.runtime.library \
+    to the full path of the runtime's native library — xmip_core_runtime.dll on Windows, \
+    libxmip_core_runtime.so on Linux, libxmip_core_runtime.dylib on macOS — which cargo build \
+    leaves in module/platform/runtime/target/debug of the estate; or start the server with \
+    --runtime <path>";
 
 /// The server's state between messages.
 pub struct Server {
@@ -259,7 +262,7 @@ impl Server {
     fn settings_request(&mut self, method: &str, id: Option<&Value>, params: &Value) -> Value {
         let document = self.documents.get(&uri_of(params)).cloned();
         let answered = match self.runtime() {
-            Ok(runtime) => settings::answer(runtime, method, params, document.as_deref()),
+            Ok(runtime) => settings::answer(runtime, method, params, document.as_deref(), &[]),
             Err(reason) => Err(Unanswered::Unavailable(reason)),
         };
 

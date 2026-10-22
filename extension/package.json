@@ -66,7 +66,7 @@
         "xmip.runtime.library": {
           "type": "string",
           "default": "",
-          "description": "The runtime's native library (xmip_core_runtime.dll, .so or .dylib) that validates the configuration. The server finds none on its own: empty means every validation says that no runtime library was named."
+          "description": "Required. The full path of the runtime's native library that validates, suggests and edits the configuration: xmip_core_runtime.dll on Windows, libxmip_core_runtime.so on Linux, libxmip_core_runtime.dylib on macOS. cargo build leaves it in module/platform/runtime/target/debug of the estate. The server looks for none on its own: empty, every validation says where to point it."
         }
       }
     }
@@ -74,10 +74,9 @@
   "scripts": {
     "compile": "tsc -p ./ && tsc -p ./webview",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src webview",
+    "lint": "eslint --flag unstable_native_nodejs_ts_config src webview",
     "pretest": "npm run compile",
-    "test": "node --test \"out/test/**/*.test.js\"",
-    "vscode:prepublish": "npm run compile"
+    "test": "node --test \"out/test/**/*.test.js\""
   },
   "dependencies": {
     "vscode-languageclient": "^10.1.2"

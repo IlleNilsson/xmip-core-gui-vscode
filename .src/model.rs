@@ -94,6 +94,12 @@ impl Model {
         list(&self.answer["references"])
     }
 
+    /// Every compiled unit the file's modules declare, each with what a
+    /// call to it may give.
+    pub fn units(&self) -> &[Value] {
+        list(&self.answer["units"])
+    }
+
     /// The runtime's declaration of `[tuning]`.
     pub fn tuning(&self) -> &Value {
         &self.answer["tuning"]
