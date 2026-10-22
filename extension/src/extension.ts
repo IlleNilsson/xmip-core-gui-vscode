@@ -4,8 +4,10 @@
 // validates anything: that is the server's, through the runtime's C ABI.
 // The designer (ADR-0064, amendment 2026-10-03) is a view of the cluster's
 // one xmip.toml, registered here and carried in designer.ts; it holds no
-// rule either. The commands that create, rename and delete (commands.ts)
-// ask what the server says to ask and run the server's command.
+// rule either. The Work Process designer (ADR-0066, amendment 2026-10-22)
+// draws a .bpmn design and is carried in process.ts, ruleless too. The
+// commands that create, rename and delete (commands.ts) ask what the server
+// says to ask and run the server's command.
 //
 // This is the one place in the estate where TypeScript lives (the same
 // amendment). Anything that could be done in the Rust server is done there.
@@ -18,6 +20,7 @@ import {
 } from "vscode-languageclient/node";
 import { registerCommands } from "./commands.js";
 import { ClusterDesigner, viewType } from "./designer.js";
+import { ProcessDesigner, processViewType } from "./process.js";
 
 /** What `xmip/validate` answers: the runtime's own report, whole. */
 interface Validation {
@@ -42,6 +45,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.registerCustomEditorProvider(
       viewType,
       new ClusterDesigner(context.extensionUri, () => client),
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+    vscode.window.registerCustomEditorProvider(
+      processViewType,
+      new ProcessDesigner(context.extensionUri, () => client),
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
     vscode.workspace.onDidChangeConfiguration(async (change) => {

@@ -27,6 +27,11 @@ abi = { package = "xmip-core-abi", git = "https://github.com/IlleNilsson/xmip-co
 libloading = "0.8"
 # The messages of the Language Server Protocol are JSON-RPC.
 serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+# The Work Process designer reads, edits and compiles a design through the
+# format it names, BPMN 2.0 the default (ADR-0066, amendment 2026-10-22).
+process = { package = "xmip-core-process", git = "https://github.com/IlleNilsson/xmip-core-process", branch = "main" }
+process-bpmn = { package = "xmip-core-process-bpmn", path = "../../../capability/process/bpmn" }
 # What the server started, stopped, did to the runtime and failed at, recorded
 # through the one audit capability, with xmip-core's phase and severity
 # (ADR-0062).

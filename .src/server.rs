@@ -27,7 +27,7 @@ use crate::designer::{self, Unanswered};
 use crate::diagnostic;
 
 use crate::runtime::{Runtime, Validation};
-use crate::{language, settings};
+use crate::{language, process, settings};
 
 /// The name the server reports to the client.
 pub const NAME: &str = "xmip-lsp";
@@ -122,7 +122,7 @@ impl Server {
             method if settings::METHODS.contains(&method) => {
                 out.push(self.settings_request(method, id, params));
             }
-            method if designer::METHODS.contains(&method) => {
+            method if designer::METHODS.contains(&method) || process::METHODS.contains(&method) => {
                 out.push(self.design_request(method, id, params));
             }
             _ => {
@@ -240,9 +240,15 @@ impl Server {
             .as_str()
             .map(str::to_string)
             .or_else(|| self.documents.get(&uri_of(params)).cloned());
-        let answered = match self.runtime() {
-            Ok(runtime) => designer::answer(runtime, method, params, document.as_deref()),
-            Err(reason) => return error(id, RUNTIME_UNAVAILABLE, &reason),
+        // The Work Process designer needs no runtime: its design formats are
+        // the language server's own (`process_design`).
+        let answered = if process::METHODS.contains(&method) {
+            process::answer(method, params, document.as_deref())
+        } else {
+            match self.runtime() {
+                Ok(runtime) => designer::answer(runtime, method, params, document.as_deref()),
+                Err(reason) => return error(id, RUNTIME_UNAVAILABLE, &reason),
+            }
         };
 
         match answered {

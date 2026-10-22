@@ -33,6 +33,8 @@ mod framing;
 mod language;
 mod lookup;
 mod model;
+mod process;
+mod process_design;
 mod quickfix;
 mod runtime;
 mod server;

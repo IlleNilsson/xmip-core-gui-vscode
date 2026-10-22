@@ -85,7 +85,7 @@ over the cluster's `xmip.toml`:
   take (a Receive Location's `receive_port`, a Subscription's
   `destination = { send-port = "…" }`, a Send Port Group's `send_ports`, a
   binding's `name`, a bound Location's `name` and `node`), a choice's words
-  (`interaction`, `depth`, `failover`, `execution_style`, …), the role
+  (`interaction`, `depth`, `failover`, `on_failure`, …), the role
   words a node's `roles` takes, `true` or `false`; in a `filter`, the
   properties the file's filters compare and the operators a filter row
   offers; in `[tuning]`, the runtime's tuning keys; a Location's transport,
@@ -204,6 +204,51 @@ adding a Subscription that routes to the Send Port, choosing it on the
 canvas, building its filter in the rows and applying it; with a Subscription
 chosen, clicking another Work Process, Send Port Group or Send Port routes it
 there instead.
+
+## The Work Process designer
+
+A Work Process is designed in VS Code and, at the end of the day, is a
+compiled piece executed when called upon (the owner, 2026-10-22; ADR-0066,
+amendment 2026-10-22). A `.bpmn` file opens in the **Xmip Work Process
+designer**, the default editor for it: a BPMN 2.0 diagram, saved as standard
+BPMN 2.0 XML with its BPMN DI, so every other BPMN tool opens what is drawn
+here and a design drawn elsewhere opens here. The text editor and the
+designer are two views of one document.
+
+The palette adds each step the design format offers — start, end, task,
+a call to a unit, publish, wait for a Message, wait for a time, decide,
+split or join, subprocess, and on an activity an error catch or a time-out;
+a step is dragged to move it, **Connect** draws a flow from one step to the
+next, and the properties panel sets a step's name, a flow's condition in
+Xmip's expression language, the module and unit a service task calls, a
+receive task's batch, the correlation set a step takes its Message by and a
+timer's duration. What keeps the design from compiling is shown on the step
+it names. **Compile** asks for the unit's module name and writes the Work
+Process unit beside the design, in a folder of that name: its crate's
+`Cargo.toml` and `src/lib.rs`, built into the library a node loads through
+the module boundary, and `module.toml`, its `[[modules]]` entry for the
+cluster's `xmip.toml`.
+
+It holds no rule. The webview (`extension/webview/process.ts`, TypeScript
+and SVG) draws what the server sends and forwards what the developer does;
+`extension/src/process.ts` carries the messages, applies the text edit the
+server returns and writes what a compile answers; the server's three
+requests (`.src/process.rs`) are answered by the server itself
+(`.src/process_design.rs`), through the design formats it carries — a
+design format is a technology, which the runtime's library, a platform
+service, never names — forwarding to the design format,
+`xmip-core-process-bpmn` (`diagram.rs`, `edit.rs`), and to
+`xmip-core-process` (`generate.rs`):
+
+- `xmip/process` — the design as drawn: every step with its kind, name,
+  BPMN DI bounds and what Xmip adds to it, every flow with its condition
+  and waypoints, the problems by element, the kinds the palette offers;
+- `xmip/processEdit` — add, move, connect, rename, a condition, a default
+  flow, an Xmip extension, a timer, remove; made in place in the XML, the
+  rest of the design byte for byte, and answered as the one text edit that
+  makes it, so the webview never writes XML;
+- `xmip/processCompile` — the design compiled, the format it names or BPMN
+  2.0, into its unit's crate and module entry, or every refusal.
 
 ## Building
 

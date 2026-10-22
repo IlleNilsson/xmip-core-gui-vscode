@@ -119,6 +119,7 @@ void test("activation registers the command and starts the server from the setti
     assert.ok(commands.has(command), `${command} is registered`);
   }
   assert.ok(editors.has("xmip.clusterDesigner"), "the cluster designer is registered");
+  assert.ok(editors.has("xmip.processDesigner"), "the Work Process designer is registered");
   assert.equal(clients.length, 1);
   assert.equal(clients[0]?.id, "xmip");
   assert.equal(clients[0]?.server.command, "C:/xmip/target/debug/xmip-lsp.exe");

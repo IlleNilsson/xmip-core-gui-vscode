@@ -1,7 +1,7 @@
 {
   "name": "xmip",
   "displayName": "Xmip",
-  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it; suggests every key and value, looks up definitions and references, creates, renames and deletes entries and fixes what the runtime reports; and designs the cluster's one xmip.toml view by view.",
+  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it; suggests every key and value, looks up definitions and references, creates, renames and deletes entries and fixes what the runtime reports; designs the cluster's one xmip.toml view by view; and draws a Work Process in BPMN 2.0 and compiles it into its unit.",
   "version": "0.1.0",
   "publisher": "IlleNilsson",
   "license": "AGPL-3.0-or-later",
@@ -17,7 +17,8 @@
     "Visualization"
   ],
   "activationEvents": [
-    "workspaceContains:**/*.toml"
+    "workspaceContains:**/*.toml",
+    "workspaceContains:**/*.bpmn"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -53,6 +54,16 @@
           }
         ],
         "priority": "option"
+      },
+      {
+        "viewType": "xmip.processDesigner",
+        "displayName": "Xmip Work Process designer",
+        "selector": [
+          {
+            "filenamePattern": "*.bpmn"
+          }
+        ],
+        "priority": "default"
       }
     ],
     "configuration": {

@@ -19,6 +19,15 @@ text (`MessageType = 'Order' and not Amount > 1000`). Prepare, Promote,
 Demote and Transformation are calls to compiled units a Module declares.
 The designer and the text editor are two views of one document.
 
+A `.bpmn` file opens in the **Xmip Work Process designer**: a Work Process
+drawn in BPMN 2.0 and saved as standard BPMN 2.0 XML with its diagram, so
+other BPMN tools open it. Add steps from the palette, drag them, connect
+them, and set a step's unit call, batch, correlation set or timer and a
+flow's condition in the properties panel; what keeps the design from
+compiling is shown on its step. **Compile** writes the Work Process unit
+beside the design: the crate a node loads once built, and its `[[modules]]`
+entry.
+
 The extension is a shell around `xmip-lsp`, a language server that loads the
 runtime's native library and calls the same validation the Xmip desktop tool
 calls. Point `xmip.server.path` at the server and `xmip.runtime.library`,

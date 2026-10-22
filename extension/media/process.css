@@ -1,0 +1,160 @@
+/* The Work Process designer's page (ADR-0066, amendment 2026-10-22), in the
+   editor's own theme: every color is one VS Code gives the webview, so the
+   designer is light, dark or high contrast as the editor is. */
+
+body {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+#bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+#bar h1 {
+  font-size: 1.1em;
+  margin: 0;
+}
+
+#said.refused,
+.refused {
+  color: var(--vscode-errorForeground);
+}
+
+button {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border: none;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+button.armed {
+  outline: 2px solid var(--vscode-focusBorder);
+}
+
+input {
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 2px 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+main.process {
+  display: grid;
+  grid-template-columns: 11em 1fr 16em;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+#palette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#canvas-holder {
+  overflow: auto;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+#properties label {
+  display: block;
+  margin: 6px 0;
+}
+
+#properties h2 {
+  font-size: 1em;
+  margin: 4px 0 8px;
+}
+
+/* The shapes: a step's outline in the foreground, a chosen one in the
+   focus color, one that keeps the design from compiling in the error's. */
+.shape circle,
+.shape rect,
+.shape polygon {
+  fill: var(--vscode-editor-background);
+  stroke: var(--vscode-foreground);
+  stroke-width: 1.5;
+}
+
+.shape.endEvent circle {
+  stroke-width: 4;
+}
+
+.shape circle.inner {
+  stroke-width: 1;
+}
+
+.shape.subProcess rect {
+  stroke-dasharray: 6 4;
+  fill: transparent;
+}
+
+.shape.chosen circle,
+.shape.chosen rect,
+.shape.chosen polygon {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2.5;
+}
+
+.shape.refused circle,
+.shape.refused rect,
+.shape.refused polygon {
+  stroke: var(--vscode-errorForeground);
+}
+
+.shape text {
+  fill: var(--vscode-foreground);
+  text-anchor: middle;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.shape text.glyph {
+  text-anchor: start;
+}
+
+.shape text.mark {
+  font-size: 18px;
+}
+
+.shape {
+  cursor: move;
+}
+
+polyline.flow {
+  fill: none;
+  stroke: var(--vscode-foreground);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+polyline.flow.default {
+  stroke-dasharray: 2 3;
+}
+
+polyline.flow.chosen {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2.5;
+}
+
+#arrow path {
+  fill: var(--vscode-foreground);
+}

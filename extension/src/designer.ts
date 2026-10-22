@@ -10,6 +10,7 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import type { LanguageClient } from "vscode-languageclient/node";
+import { type TextEdit, applied, asked, request } from "./asking.js";
 
 /** The custom editor's view type, as package.json contributes it. */
 export const viewType = "xmip.clusterDesigner";
@@ -20,17 +21,6 @@ type FromView =
   | { type: "edit"; edit: unknown }
   | { type: "filterText"; structure: unknown }
   | { type: "filterStructure"; filter: string };
-
-interface Position {
-  line: number;
-  character: number;
-}
-
-/** What `xmip/edit` answers: the one text edit that makes the change. */
-export interface TextEdit {
-  range: { start: Position; end: Position };
-  newText: string;
-}
 
 export class ClusterDesigner implements vscode.CustomTextEditorProvider {
   constructor(
@@ -95,23 +85,11 @@ export class ClusterDesigner implements vscode.CustomTextEditorProvider {
     edit: unknown,
   ): Promise<void> {
     const version = document.version;
-    const answer = await this.request<TextEdit>(webview, "xmip/edit", { ...request(document), edit });
-    if (answer === undefined) {
-      return;
+    const params = { ...request(document), edit };
+    const answer = await asked<TextEdit>(this.client(), webview, "xmip/edit", params);
+    if (answer !== undefined) {
+      await applied(document, webview, version, answer);
     }
-    if (document.version !== version) {
-      await webview.postMessage({ type: "refused", reason: "The text changed meanwhile; do it again." });
-      return;
-    }
-
-    const { start, end } = answer.range;
-    const change = new vscode.WorkspaceEdit();
-    change.replace(
-      document.uri,
-      new vscode.Range(start.line, start.character, end.line, end.character),
-      answer.newText,
-    );
-    await vscode.workspace.applyEdit(change);
   }
 
   /** Ask the server and post what it answered to the webview as `type`. */
@@ -121,44 +99,31 @@ export class ClusterDesigner implements vscode.CustomTextEditorProvider {
     params: object,
     type: string,
   ): Promise<void> {
-    const answer = await this.request<unknown>(webview, method, params);
+    const answer = await asked<unknown>(this.client(), webview, method, params);
     if (answer !== undefined) {
       await webview.postMessage({ type, answer });
     }
   }
-
-  /** The server's answer, or undefined after the refusal was posted. */
-  private async request<T>(
-    webview: vscode.Webview,
-    method: string,
-    params: object,
-  ): Promise<T | undefined> {
-    const client = this.client();
-    if (client === undefined) {
-      await webview.postMessage({ type: "refused", reason: "xmip-lsp is not running." });
-      return undefined;
-    }
-    try {
-      return await client.sendRequest<T>(method, params);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      await webview.postMessage({ type: "refused", reason });
-      return undefined;
-    }
-  }
 }
 
-/** The document as a request names it: its uri, and its text as it is now. */
-function request(document: vscode.TextDocument): object {
-  return { textDocument: { uri: document.uri.toString() }, text: document.getText() };
-}
+/** The cluster designer's page: its bar, its status line, its kinds and its view. */
+const CLUSTER_BODY = `<header id="bar"><h1 id="title">Xmip cluster</h1></header>
+<p id="said" role="status"></p>
+<main><nav aria-label="Artifacts"><ul id="kinds"></ul></nav><section id="view"></section></main>`;
 
 /**
  * The webview's page: a module script and a stylesheet, nothing inline. The
  * script loads by nonce, and the modules it imports from the extension's own
- * webview folder by the webview's source.
+ * webview folder by the webview's source. The cluster designer's by default;
+ * the Work Process designer gives its own title and body.
  */
-export function page(source: string, script: string, style: string): string {
+export function page(
+  source: string,
+  script: string,
+  style: string,
+  title = "Xmip cluster designer",
+  body = CLUSTER_BODY,
+): string {
   const nonce = randomBytes(16).toString("base64");
   return `<!DOCTYPE html>
 <html lang="en">
@@ -167,12 +132,10 @@ export function page(source: string, script: string, style: string): string {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${source}; script-src 'nonce-${nonce}' ${source};">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="${style}">
-<title>Xmip cluster designer</title>
+<title>${title}</title>
 </head>
 <body>
-<header id="bar"><h1 id="title">Xmip cluster</h1></header>
-<p id="said" role="status"></p>
-<main><nav aria-label="Artifacts"><ul id="kinds"></ul></nav><section id="view"></section></main>
+${body}
 <script type="module" nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
