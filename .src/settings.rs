@@ -132,11 +132,12 @@ const LOCATIONS: [(&str, &str); 4] = [
 
 /// The lists of calls to compiled units, whose `settings` their unit
 /// declares (ADR-0066, amendment 2026-10-22).
-const CALLS: [&str; 5] = [
+const CALLS: [&str; 6] = [
     "preparation_steps",
     "promotions",
     "demotions",
     "transformations",
+    "debatches",
     "work_processes",
 ];
 
