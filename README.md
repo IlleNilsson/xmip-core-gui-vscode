@@ -221,7 +221,7 @@ split or join, subprocess, and on an activity an error catch or a time-out;
 a step is dragged to move it, **Connect** draws a flow from one step to the
 next, and the properties panel sets a step's name, a flow's condition in
 Xmip's expression language, the module and unit a service task calls, a
-receive task's batch, the correlation set a step takes its Message by and a
+receive task's batch, the Correlation a step takes its Message by and a
 timer's duration. What keeps the design from compiling is shown on the step
 it names. **Compile** asks for the unit's module name and writes the Work
 Process unit beside the design, in a folder of that name: its crate's
