@@ -27,7 +27,7 @@ interface Shape {
   call: Call | null;
   debatch: Call | null;
   batch: { most: string; within: string | null } | null;
-  set: string | null;
+  correlation: string | null;
   timer: string | null;
   error: string | null;
 }
@@ -341,8 +341,8 @@ function shapeProperties(shape: Shape): void {
     );
   }
   if (["startEvent", "receiveTask", "messageCatch"].includes(shape.kind)) {
-    properties.append(field("Correlation set", shape.set ?? "", (set) => {
-      extension("correlate", set === "" ? null : { set });
+    properties.append(field("Correlation", shape.correlation ?? "", (correlation) => {
+      extension("correlate", correlation === "" ? null : { correlation });
     }));
   }
   if (shape.kind === "timerCatch" || shape.kind === "timerBoundary") {

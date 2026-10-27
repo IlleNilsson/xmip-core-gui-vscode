@@ -140,8 +140,7 @@ mod tests {
             "<sequenceFlow id=\"F\" sourceRef=\"S\" targetRef=\"E\"/>",
             "",
         );
-        let refused = compile(&broken, r#"{"design":"a.bpmn","module":"m"}"#)
-            .expect_err("no");
+        let refused = compile(&broken, r#"{"design":"a.bpmn","module":"m"}"#).expect_err("no");
         assert!(refused.contains("S: leads nowhere"), "{refused}");
     }
 }
