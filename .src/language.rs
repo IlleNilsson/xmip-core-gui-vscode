@@ -18,10 +18,9 @@ use serde_json::{Value, json};
 
 use crate::designer::{Unanswered, text_edit};
 use crate::model::Model;
+use crate::rpc::{error, response};
 use crate::runtime::Runtime;
-use crate::server::{
-    INVALID_PARAMS, NOT_NAMED, REFUSED, RUNTIME_UNAVAILABLE, Server, error, is_toml, response,
-};
+use crate::server::{INVALID_PARAMS, NOT_NAMED, REFUSED, RUNTIME_UNAVAILABLE, Server, is_toml};
 use crate::text::offset;
 use crate::{action, completion, lookup, quickfix, settings};
 

@@ -31,7 +31,7 @@ serde = { version = "1", features = ["derive"] }
 # The Work Process designer reads, edits and compiles a design through the
 # format it names, BPMN 2.0 the default (ADR-0066, amendment 2026-10-22).
 process = { package = "xmip-core-process", git = "https://github.com/IlleNilsson/xmip-core-process", branch = "main" }
-process-bpmn = { package = "xmip-core-process-bpmn", path = "../../../capability/process/bpmn" }
+process-bpmn = { package = "xmip-core-process-bpmn", git = "https://github.com/IlleNilsson/xmip-core-process-bpmn", branch = "main" }
 # What the server started, stopped, did to the runtime and failed at, recorded
 # through the one audit capability, with xmip-core's phase and severity
 # (ADR-0062).

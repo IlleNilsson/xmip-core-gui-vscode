@@ -36,6 +36,7 @@ mod model;
 mod process;
 mod process_design;
 mod quickfix;
+mod rpc;
 mod runtime;
 mod server;
 mod settings;

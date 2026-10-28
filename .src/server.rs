@@ -26,6 +26,7 @@ use xcore::{ExecutionPhase, Severity};
 use crate::designer::{self, Unanswered};
 use crate::diagnostic;
 
+use crate::rpc::{error, publish_diagnostics, response};
 use crate::runtime::{Runtime, Validation};
 use crate::{language, process, settings};
 
@@ -380,26 +381,6 @@ pub(crate) fn is_toml(uri: &str) -> bool {
     Path::new(uri)
         .extension()
         .is_some_and(|extension| extension.eq_ignore_ascii_case("toml"))
-}
-
-pub(crate) fn response(id: Option<&Value>, result: &Value) -> Value {
-    json!({ "jsonrpc": "2.0", "id": id.cloned().unwrap_or(Value::Null), "result": result })
-}
-
-pub(crate) fn error(id: Option<&Value>, code: i64, message: &str) -> Value {
-    json!({
-        "jsonrpc": "2.0",
-        "id": id.cloned().unwrap_or(Value::Null),
-        "error": { "code": code, "message": message },
-    })
-}
-
-fn publish_diagnostics(uri: &str, diagnostics: &[Value]) -> Value {
-    json!({
-        "jsonrpc": "2.0",
-        "method": "textDocument/publishDiagnostics",
-        "params": { "uri": uri, "diagnostics": diagnostics },
-    })
 }
 
 #[cfg(test)]
