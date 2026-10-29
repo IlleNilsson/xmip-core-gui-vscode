@@ -86,7 +86,7 @@ over the cluster's `xmip.toml`:
   take (a Receive Location's `receive_port`, a Subscription's
   `destination = { send-port = "…" }`, a Send Port Group's `send_ports`, a
   binding's `name`, a bound Location's `name` and `node`), a choice's words
-  (`interaction`, `depth`, `failover`, `on_failure`, …), the role
+  (`depth`, `failover`, `on_failure`, …), the role
   words a node's `roles` takes, `true` or `false`; in a `filter`, the
   properties the file's filters compare and the operators a filter row
   offers; in `[tuning]`, the runtime's tuning keys; a Location's contract
@@ -165,7 +165,7 @@ groups, with Not around any part, beside the filter's text, one line of
 Xmip's expression language (ADR-0066). A Receive Port entry is an
 Application's `[[xmip_applications.receive_ports]]`, and each Receive
 Location of an Application names its `receive_port` and states its
-`interaction` and `depth` (ADR-0031, amendment 2026-10-01). Prepare,
+`depth` (ADR-0031, amendment 2026-10-01). Prepare,
 Promote, Demote and Transformation list the calls to compiled units —
 `[[preparation_steps]]`, `[[promotions]]`, `[[demotions]]` and
 `[[transformations]]`, each a module, a unit and its settings — and Module

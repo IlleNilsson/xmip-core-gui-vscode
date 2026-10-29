@@ -350,7 +350,7 @@ mod tests {
 
         let blank = at(&text, "\n\n[[xmip_applications.send_ports]]", 1);
         let keys = suggested(&text, blank);
-        assert!(keys.contains(&"interaction".to_string()), "{keys:?}");
+        assert!(keys.contains(&"depth".to_string()), "{keys:?}");
         assert!(
             !keys.contains(&"receive_port".to_string()),
             "written: {keys:?}"

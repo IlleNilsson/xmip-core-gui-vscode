@@ -213,8 +213,7 @@ mod tests {
                           [[xmip_applications]]\nname = \"Orders\"\n\n\
                           [[xmip_applications.receive_ports]]\nname = \"Orders\"\n\n\
                           [[xmip_applications.receive_locations]]\nname = \"OrdersIn\"\n\
-                          receive_port = \"Orders\"\ninteraction = \"data-transfer\"\n\
-                          depth = \"light\"\n\n\
+                          receive_port = \"Orders\"\ndepth = \"light\"\n\n\
                           [[xmip_applications.work_processes]]\nname = \"Approval\"\n\n\
                           [[xmip_applications.send_ports]]\nname = \"Billing\"\n\n\
                           [[xmip_applications.subscriptions]]\nid = \"billing\"\n\
