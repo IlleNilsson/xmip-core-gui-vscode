@@ -208,8 +208,8 @@ mod tests {
     /// A cluster's file holding one Xmip Application as a section. It
     /// declares no node, so it names none.
     const ORDERS: &str = "# The cluster's one file.\n[service]\nname = \"xmip\"\n\n\
-                          [[receive_locations]]\nname = \"drop\"\nstart = true\n\
-                          transport = \"xmip-core-transport-file\"\naddress = \"/in\"\n\n\
+                          [[receive_locations]]\nname = \"drop\"\n\
+                          address = \"/in\"\n\n\
                           [[xmip_applications]]\nname = \"Orders\"\n\n\
                           [[xmip_applications.receive_ports]]\nname = \"Orders\"\n\n\
                           [[xmip_applications.receive_locations]]\nname = \"OrdersIn\"\n\

@@ -2,9 +2,10 @@
 //! each technology declares (ADR-0064, amendment 2026-09-26), and the
 //! declarations themselves for the extension's Location form.
 //!
-//! Every word offered here — a transport's or a contract's module name, a
-//! setting's name, its kind, whether it is required, its default, what it
-//! means — is the technology's own, read from the runtime's library through
+//! Every word offered here — a contract's module name, a setting's name,
+//! its kind, whether it is required, its default, what it means, the
+//! schemes a transport is chosen by — is the technology's own, read from
+//! the runtime's library through
 //! `xmip_technology_catalogue_v1` (`xmip_operate.h` section 12). Nothing is
 //! known here about any technology. What is here is the editor's part: where
 //! the cursor is — which Location's table, on which side, naming which
@@ -108,14 +109,16 @@ fn catalogue(runtime: &Runtime, technology: &str) -> Result<Value, Unanswered> {
 /// Which table the cursor is in, as far as settings go.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Place {
-    /// On the value of a Location's `transport` or `contract` key: the
-    /// technologies of that capability are offered.
+    /// On the value of a Location's `contract` key: the contracts are
+    /// offered. A transport is named by no key: the scheme a Location's
+    /// address is entered with chooses it (ADR-0064, amendment 2026-10-28).
     Naming { capability: &'static str },
     /// In a Location's `settings` or `contract_settings` table.
     Settings {
         /// `receive` or `send`, as a declaration's `applies` says it.
         side: &'static str,
-        /// The module the Location names for this table, where it names one.
+        /// The contract the Location names for this table, or the scheme its
+        /// address is entered with for its transport's (`net::scheme_of`).
         technology: Option<String>,
         /// The keys already written in the table.
         written: Vec<String>,
@@ -157,13 +160,13 @@ pub fn place(text: &str, line: usize, character: usize) -> Option<Place> {
     let current = lines.get(line).copied().unwrap_or_default();
     let before: String = current.chars().take(character).collect();
 
-    for (key, capability) in [("transport", "transport"), ("contract", "contract")] {
-        if let Some((name, value)) = before.split_once('=')
-            && name.trim() == key
-            && value.trim_start().starts_with('"')
-        {
-            return Some(Place::Naming { capability });
-        }
+    if let Some((name, value)) = before.split_once('=')
+        && name.trim() == "contract"
+        && value.trim_start().starts_with('"')
+    {
+        return Some(Place::Naming {
+            capability: "contract",
+        });
     }
 
     let (header_line, header) = lines[..=line.min(lines.len().saturating_sub(1))]
@@ -208,7 +211,14 @@ pub fn place(text: &str, line: usize, character: usize) -> Option<Place> {
             .find(|(name, _)| *name == own(array))
             .map(|(_, side)| *side)?;
         let mut entry = entry;
-        (side, entry.find_map(|text| value_of(text, key)))
+        let named = if key == "transport" {
+            entry
+                .find_map(|text| value_of(text, "address"))
+                .map(|address| net::scheme_of(&address))
+        } else {
+            entry.find_map(|text| value_of(text, key))
+        };
+        (side, named)
     };
     let written = lines[header_line + 1..]
         .iter()
@@ -242,11 +252,15 @@ fn technologies(catalogue: &Value) -> &[Value] {
         .map_or(&[], Vec::as_slice)
 }
 
-/// The declaration of `technology` in the catalogue.
+/// The declaration of `technology` in the catalogue: the technology of
+/// that name, or the transport chosen by that scheme.
 fn declaration<'a>(catalogue: &'a Value, technology: &str) -> Option<&'a Value> {
-    technologies(catalogue)
-        .iter()
-        .find(|entry| entry["technology"] == technology)
+    technologies(catalogue).iter().find(|entry| {
+        entry["technology"] == technology
+            || entry["schemes"]
+                .as_array()
+                .is_some_and(|schemes| schemes.iter().any(|scheme| scheme == technology))
+    })
 }
 
 /// Whether a setting applies on `side`.
@@ -354,7 +368,9 @@ pub fn hover(catalogue: &Value, place: &Place, line: &str) -> Option<Value> {
         return None;
     };
     let (name, _) = line.split_once('=')?;
-    let setting = declaration(catalogue, technology)?["settings"]
+    let declared = declaration(catalogue, technology)?;
+    let technology = declared["technology"].as_str().unwrap_or(technology);
+    let setting = declared["settings"]
         .as_array()?
         .iter()
         .find(|setting| setting["name"] == name.trim())?;
@@ -378,7 +394,7 @@ mod tests {
     fn catalogue() -> Value {
         json!({"technologies": [
             {"capability": "transport", "technology": "xmip-core-transport-kafka",
-             "settings": [
+             "schemes": ["kafka"], "settings": [
                 {"name": "topic", "kind": "text", "presence": "required",
                  "meaning": "The topic a Location reads or writes.", "applies": "both"},
                 {"name": "group", "kind": "text", "presence": "optional",
@@ -392,17 +408,17 @@ mod tests {
     }
 
     const NODE: &str = "[[send_locations]]\nname = \"out\"\n\
-        transport = \"xmip-core-transport-kafka\"\naddress = \"b:9092\"\n\
+        address = \"KAFKA://b:9092\"\n\
         [send_locations.settings]\ntopic = \"orders\"\n\n";
 
     #[test]
     fn a_settings_table_knows_its_side_technology_and_written_keys() {
-        let place = place(NODE, 6, 0).expect("in the table");
+        let place = place(NODE, 5, 0).expect("in the table");
         assert_eq!(
             place,
             Place::Settings {
                 side: "send",
-                technology: Some("xmip-core-transport-kafka".to_string()),
+                technology: Some("kafka".to_string()),
                 written: vec!["topic".to_string()],
             }
         );
@@ -436,7 +452,7 @@ mod tests {
 
     #[test]
     fn completion_offers_what_applies_and_is_not_yet_written() {
-        let items = completion(&catalogue(), &place(NODE, 6, 0).expect("in the table"));
+        let items = completion(&catalogue(), &place(NODE, 5, 0).expect("in the table"));
         let labels: Vec<&str> = items.iter().filter_map(|i| i["label"].as_str()).collect();
         assert_eq!(
             labels,
@@ -453,17 +469,22 @@ mod tests {
     }
 
     #[test]
-    fn naming_a_transport_offers_the_transports_carried() {
-        let place = place("transport = \"", 0, 13).expect("naming");
+    fn naming_a_contract_offers_the_contracts_carried_and_a_transport_is_named_by_none() {
+        let place = place("contract = \"", 0, 12).expect("naming");
         assert_eq!(
             place,
             Place::Naming {
-                capability: "transport"
+                capability: "contract"
             }
         );
         let items = completion(&catalogue(), &place);
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0]["label"], "xmip-core-transport-kafka");
+        assert_eq!(items[0]["label"], "xmip-core-contract-json-schema");
+        assert_eq!(
+            super::place("transport = \"", 0, 13),
+            None,
+            "the scheme chooses it"
+        );
     }
 
     #[test]
@@ -475,7 +496,7 @@ mod tests {
 
     #[test]
     fn hover_says_what_the_technology_declares() {
-        let place = place(NODE, 5, 2).expect("in the table");
+        let place = place(NODE, 4, 2).expect("in the table");
         let shown = hover(&catalogue(), &place, "topic = \"orders\"").expect("a hover");
         let value = shown["contents"]["value"].as_str().expect("markdown");
         assert!(value.contains("**topic**"), "{value}");

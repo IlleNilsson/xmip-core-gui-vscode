@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn the_nearest_key_is_offered_only_where_it_is_near() {
-        let known = ["address", "transport", "start"];
+        let known = ["address", "name", "start"];
         // A key spelled wrong on purpose: address with one d.
         let wrong = "address".replacen("dd", "d", 1);
         assert_eq!(

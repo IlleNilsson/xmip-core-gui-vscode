@@ -57,9 +57,10 @@ the audit capability writes every one.
 In a Receive or Send Location — a node's own or a bound one — the editor
 completes what a Location may name and write, and explains it on hover, from
 what each technology declares (ADR-0064, amendment 2026-09-26): on
-`transport = "` or `contract = "`, the transports or contracts the runtime
-carries; in `[receive_locations.settings]` or `[…contract_settings]`, the
-settings the named technology declares for that side and the Location has not
+`contract = "`, the contracts the runtime carries; in
+`[receive_locations.settings]`, the settings of the transport the
+Location's address chooses by its scheme (amendment 2026-10-28), and in
+`[…contract_settings]` those of the named contract, each for that side and the Location has not
 written yet, each with its kind, default or requirement and meaning, and the
 value's snippet; on a setting's line, its declaration. Every word is the
 technology's own, read through the runtime's `xmip_technology_catalogue_v1`
@@ -88,8 +89,8 @@ over the cluster's `xmip.toml`:
   (`interaction`, `depth`, `failover`, `on_failure`, …), the role
   words a node's `roles` takes, `true` or `false`; in a `filter`, the
   properties the file's filters compare and the operators a filter row
-  offers; in `[tuning]`, the runtime's tuning keys; a Location's transport,
-  contract and settings as below.
+  offers; in `[tuning]`, the runtime's tuning keys; a Location's contract
+  and settings as below.
 - **Lookups**: F12 on a reference goes to what it names; Shift+F12 on a
   name or a reference lists every place that names it; hover on a key says
   its kind, whether it is required, its words and what it names, on a

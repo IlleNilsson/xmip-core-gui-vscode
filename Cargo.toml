@@ -21,6 +21,9 @@ path = ".src/main.rs"
 # The status constants and the borrowed-string layout of xmip_module.h, so the
 # server declares no struct of its own over the boundary (ADR-0014, amendment
 # of 2026-08-26).
+# A Location's address read for the scheme that chooses its transport,
+# the one reading the runtime uses (ADR-0064, amendment 2026-10-28).
+net = { package = "xmip-core-library-net", git = "https://github.com/IlleNilsson/xmip-core-library-net", branch = "main" }
 abi = { package = "xmip-core-abi", git = "https://github.com/IlleNilsson/xmip-core-abi", branch = "main" }
 # Loading the runtime's native library by path: the one route through the
 # C ABI, the same call the desktop GUI makes through Xmip.Abi.

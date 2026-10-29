@@ -289,7 +289,7 @@ mod tests {
              filter = \"MessageType = 'Order'\"\n\n\
              [[applications]]\nname = \"Orders\"\n\n\
              [[applications.receive_locations]]\nname = \"OrdersIn\"\nnode = \"{first}\"\n\
-             start = true\ntransport = \"xmip-core-transport-file\"\naddress = \"/in\"\n"
+             address = \"/in\"\n"
         );
         Some((runtime, text, first))
     }
@@ -566,7 +566,7 @@ mod tests {
         let text = format!(
             "[[parties]]\nid = \"0192f000-0000-7000-8000-000000000001\"\nname = \"partner\"\n\
              identities = []\n\n{text}\n[[nodes.{first}.receive_locations]]\nname = \"in\"\n\
-             transport = \"t\"\naddress = \"a\"\n\
+             address = \"a\"\n\
              [nodes.{first}.receive_locations.accept]\nparty = [\"\"]\n"
         );
         let suggested = labels(
