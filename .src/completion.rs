@@ -172,10 +172,15 @@ fn key_items(
             } else {
                 ""
             };
+            let within = format!("In [{}]", header.join("."));
+            let documentation = match key["meaning"].as_str() {
+                Some(meaning) => format!("{meaning}\n\n{within}"),
+                None => within,
+            };
             json!({
                 "label": name, "kind": 10,
                 "detail": format!("{kind}{required}"),
-                "documentation": format!("In [{}]", header.join(".")),
+                "documentation": documentation,
                 "insertText": format!("{name} = {}", snippet(kind, &choices)),
                 "insertTextFormat": 2,
             })

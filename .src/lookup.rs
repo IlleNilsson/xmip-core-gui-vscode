@@ -147,9 +147,13 @@ fn key_at(model: &Model, offset: usize) -> Option<String> {
         .find(|r| strings(&r["holder"]) == section && strings(&r["key"]) == path)
         .map(|r| format!("\n\nNames a {}.", r["names"].as_str().unwrap_or_default()))
         .unwrap_or_default();
+    let meaning = key["meaning"]
+        .as_str()
+        .map(|meaning| format!("\n\n{meaning}"))
+        .unwrap_or_default();
     let header = header.join(".");
     Some(format!(
-        "**{name}** — {kind}{required}{choices}{names}\n\nIn `[{header}]`."
+        "**{name}** — {kind}{required}{choices}{names}{meaning}\n\nIn `[{header}]`."
     ))
 }
 

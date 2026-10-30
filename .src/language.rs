@@ -383,6 +383,49 @@ mod tests {
     }
 
     #[test]
+    fn a_locations_secret_is_suggested_and_explained_and_a_deleted_key_refused() {
+        let Some((runtime, text, first)) = cluster() else {
+            return;
+        };
+        let open = format!("{text}\n\n");
+        let items = ask(&runtime, &open, COMPLETION, text.len(), &json!({}));
+        let secret = list(&items)
+            .iter()
+            .find(|item| item["label"] == "secret")
+            .cloned()
+            .unwrap_or_else(|| panic!("secret is offered: {items}"));
+        let documentation = secret["documentation"].as_str().unwrap_or_default();
+        assert!(
+            documentation.contains("never the secret itself"),
+            "{secret}"
+        );
+
+        let named = format!("{text}secret = \"orders-in\"\n");
+        let hover = ask(
+            &runtime,
+            &named,
+            HOVER,
+            at(&named, "secret = ", 2),
+            &json!({}),
+        );
+        let said = hover["contents"]["value"].as_str().unwrap_or_default();
+        assert!(said.contains("Administration Database"), "{said}");
+
+        // The address alone chooses the transport: a Location naming one is
+        // refused, on a node's own Location as on a bound one.
+        for deleted in [
+            format!("{text}transport = \"xmip-core-transport-file\"\n"),
+            format!(
+                "{text}\n[[nodes.{first}.send_locations]]\nname = \"out\"\n\
+                 address = \"sftp://h/out\"\ntransport = \"xmip-core-transport-sftp\"\n"
+            ),
+        ] {
+            let report = runtime.validate(&deleted).expect("calls").report;
+            assert!(report.contains("unknown field `transport`"), "{report}");
+        }
+    }
+
+    #[test]
     fn a_reference_goes_to_its_definition_and_a_declaration_finds_its_references() {
         let Some((runtime, text, first)) = cluster() else {
             return;

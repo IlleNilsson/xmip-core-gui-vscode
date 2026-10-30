@@ -19,6 +19,15 @@ text (`MessageType = 'Order' and not Amount > 1000`). Prepare, Promote,
 Demote and Transformation are calls to compiled units a Module declares.
 The designer and the text editor are two views of one document.
 
+A Receive or Send Location names the secret it presents with
+`secret = "<name>"`: the editor suggests the key and its hover, like the
+designer, says what it means. The value — a password, a key or a
+certificate — is never written in the file; the node's Administration
+Database keeps it, set with `xmip secret <name> --set --kind password`,
+`Set-XmipSecret` or the GUI's Secrets view. A `secret` that is no secret's
+name, and a key a Location does not read, are reported where they are
+written. The extension reaches no node, so it suggests no secret's names.
+
 A `.bpmn` file opens in the **Xmip Work Process designer**: a Work Process
 drawn in BPMN 2.0 and saved as standard BPMN 2.0 XML with its diagram, so
 other BPMN tools open it. Add steps from the palette, drag them, connect

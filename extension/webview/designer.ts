@@ -184,13 +184,14 @@ function drawEntry(view: View, chosen: Entry): void {
   shown.append(table);
 
   // What may be set, as the server offers it: a key's kind, whether it is
-  // required, and the words or names its value may take.
+  // required, what it means, and the words or names its value may take.
   const offered = chosen.offered ?? [];
   const keys = html("datalist");
   keys.id = "offered-keys";
   for (const one of offered) {
     keys.append(new Option(`${one.kind}${one.required ? " · required" : ""}`, one.key));
   }
+  const meaning = html("p", undefined, "hint");
   const values = html("datalist");
   values.id = "offered-values";
   const key = html("input");
@@ -205,6 +206,7 @@ function drawEntry(view: View, chosen: Entry): void {
     for (const choice of one?.choices ?? []) {
       values.append(new Option(choice, `"${choice}"`));
     }
+    meaning.textContent = one?.meaning ?? "";
   });
   shown.append(keys, values);
   const add = button("Set", () =>
@@ -215,7 +217,7 @@ function drawEntry(view: View, chosen: Entry): void {
   });
   const actions = html("div", undefined, "actions");
   actions.append(key, value, add, remove);
-  shown.append(actions);
+  shown.append(actions, meaning);
 
   for (const list of offered.filter((one) => (one.elements ?? []).length > 0)) {
     drawElement(chosen, list);
