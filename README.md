@@ -74,7 +74,7 @@ technology's declaration, for the Location form the next slice draws
 ## Editing the cluster's xmip.toml
 
 The owner, 2026-10-13, trying the extension: *Nice attempt, but not really
-usefull VS Code extension* — it must *Create, Edit, Delete. Suggestions,
+useful VS Code extension* — it must *Create, Edit, Delete. Suggestions,
 Lookups, Validations* (ADR-0064, amendment 2026-10-13). In the text editor
 over the cluster's `xmip.toml`:
 
