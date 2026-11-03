@@ -52,6 +52,18 @@ recorded once per reason. The records go to `audit.toml` in
 `XMIP_AUDIT_DIRECTORY`, or to the operating system's log where none is set;
 the audit capability writes every one.
 
+## What happens with a change: Operations
+
+Developers need to see what happens with their changes (the owner,
+2026-11-03), and the operator's pages already exist: the Operations Web,
+which `Start-XmipOperationWeb` serves (*We have operations Web, just
+incorporate that*). The command **Xmip: Open Operations** opens it in VS
+Code's own browser view at the address the `xmip.operations.url` setting
+names, the one `Start-XmipOperationWeb -Url` was given, required: the shell
+finds none on its own and draws no page of its own. Every page — the
+cluster, topology, Subscriptions, Event Subscriptions, Dead Messages,
+Secrets and Audit — is the Operations Web's, the same the desktop GUI shows.
+
 ## A Location's settings
 
 In a Receive or Send Location — a node's own or a bound one — the editor

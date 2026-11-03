@@ -1,7 +1,7 @@
 {
   "name": "xmip",
   "displayName": "Xmip",
-  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it; suggests every key and value, looks up definitions and references, creates, renames and deletes entries and fixes what the runtime reports; designs the cluster's one xmip.toml view by view; and draws a Work Process in BPMN 2.0 and compiles it into its unit.",
+  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it; suggests every key and value, looks up definitions and references, creates, renames and deletes entries and fixes what the runtime reports; designs the cluster's one xmip.toml view by view; draws a Work Process in BPMN 2.0 and compiles it into its unit; and opens the Operations Web, to see what a change does.",
   "version": "0.1.0",
   "publisher": "IlleNilsson",
   "license": "AGPL-3.0-or-later",
@@ -30,6 +30,10 @@
       {
         "command": "xmip.openDesigner",
         "title": "Xmip: Open in the cluster designer"
+      },
+      {
+        "command": "xmip.openOperations",
+        "title": "Xmip: Open Operations"
       },
       {
         "command": "xmip.add",
@@ -73,6 +77,11 @@
           "type": "string",
           "default": "xmip-lsp",
           "description": "The xmip-lsp executable: a name on PATH or a full path. After a cargo build of xmip-core-gui-vscode it is target/debug/xmip-lsp."
+        },
+        "xmip.operations.url": {
+          "type": "string",
+          "default": "",
+          "description": "Required for Xmip: Open Operations. The address of the Operations Web, as Start-XmipOperationWeb -Url serves it, for example https://127.0.0.1:5087."
         },
         "xmip.runtime.library": {
           "type": "string",

@@ -41,6 +41,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand("xmip.validate", () => validate(output)),
     vscode.commands.registerCommand("xmip.openDesigner", () => openDesigner()),
+    vscode.commands.registerCommand("xmip.openOperations", () => openOperations()),
     ...registerCommands(() => client),
     vscode.window.registerCustomEditorProvider(
       viewType,
@@ -109,6 +110,23 @@ async function validate(output: vscode.LogOutputChannel): Promise<void> {
     output.appendLine(`REFUSED ${document.fileName}: ${String(error)}`);
   }
   output.show(true);
+}
+
+/**
+ * The command: the Operations Web, the operator's pages a node serves, in
+ * VS Code's own browser view, so a developer sees what a change does. The
+ * address is the setting's, the one Start-XmipOperationWeb was given; the
+ * shell finds none on its own and draws no page of its own.
+ */
+async function openOperations(): Promise<void> {
+  const url = vscode.workspace.getConfiguration("xmip").get<string>("operations.url", "");
+  if (url === "") {
+    void vscode.window.showInformationMessage(
+      "Xmip: set xmip.operations.url to the address Start-XmipOperationWeb serves.",
+    );
+    return;
+  }
+  await vscode.commands.executeCommand("simpleBrowser.show", url);
 }
 
 /** The command: open the active document, the cluster's xmip.toml, in the designer. */

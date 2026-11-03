@@ -115,6 +115,7 @@ void test("activation registers the command and starts the server from the setti
 
   assert.ok(commands.has("xmip.validate"), "xmip.validate is registered");
   assert.ok(commands.has("xmip.openDesigner"), "xmip.openDesigner is registered");
+  assert.ok(commands.has("xmip.openOperations"), "xmip.openOperations is registered");
   for (const command of ["xmip.add", "xmip.rename", "xmip.delete"]) {
     assert.ok(commands.has(command), `${command} is registered`);
   }
@@ -164,4 +165,21 @@ void test("the designer command with no editor open says so instead of opening",
 
   assert.equal(messages.at(-1), "Xmip: open the cluster's xmip.toml first.");
   assert.deepEqual(executed, []);
+});
+
+void test("Open Operations says what to set when no address is, and opens the one that is", async () => {
+  const open = commands.get("xmip.openOperations");
+  assert.ok(open, "the command is registered");
+
+  settings.set("operations.url", "");
+  await open();
+  assert.equal(
+    messages.at(-1),
+    "Xmip: set xmip.operations.url to the address Start-XmipOperationWeb serves.",
+  );
+  assert.deepEqual(executed, []);
+
+  settings.set("operations.url", "https://127.0.0.1:5087");
+  await open();
+  assert.deepEqual(executed.at(-1), ["simpleBrowser.show", "https://127.0.0.1:5087"]);
 });
