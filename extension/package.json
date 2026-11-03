@@ -10,7 +10,7 @@
     "url": "https://github.com/IlleNilsson/xmip-core-gui-vscode"
   },
   "engines": {
-    "vscode": "^1.140.0"
+    "vscode": "^1.144.0"
   },
   "categories": [
     "Linters",
@@ -89,11 +89,11 @@
     "test": "node --test \"out/test/**/*.test.js\""
   },
   "dependencies": {
-    "vscode-languageclient": "^10.1.2"
+    "vscode-languageclient": "^11.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
-    "@types/vscode": "^1.140.0",
-    "typescript": "^6.0.3"
+    "@types/node": "^26.6.6",
+    "@types/vscode": "^1.144.0",
+    "typescript": "^7.0.2"
   }
 }
