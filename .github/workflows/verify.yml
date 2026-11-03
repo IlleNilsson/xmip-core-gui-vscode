@@ -15,8 +15,8 @@ permissions:
   contents: read
 
 # Two languages, two jobs: the server is verified as every Rust repository is,
-# and the shell in extension/ is compiled, linted and tested the same way the
-# landing gate does it (ADR-0052 clause 6).
+# and the shell in extension/ is compiled, in TypeScript's strictest checks,
+# and tested (ADR-0052 clause 6).
 jobs:
   rust:
     uses: IlleNilsson/.github/.github/workflows/rust-verify.yml@v1
@@ -40,13 +40,17 @@ jobs:
           cache-dependency-path: extension/package-lock.json
 
       - name: Install dependencies from the lock
+        if: ${{ !inputs.update }}
         run: npm ci
 
       # Every package at its latest release, a major included (CONTRIBUTING),
       # and the VS Code the extension needs is the one its API types are for.
+      # The lock is written anew from package.json, so a package taken out
+      # of it leaves the lock too.
       - name: Raise every package to its latest release
         if: ${{ inputs.update }}
         run: |
+          rm -f package-lock.json
           npm install $(jq -r '.dependencies // {} | keys[] | . + "@latest"' package.json)
           npm install --save-dev $(jq -r '.devDependencies // {} | keys[] | . + "@latest"' package.json)
           types=$(jq -r '.devDependencies["@types/vscode"]' package.json)
@@ -55,9 +59,6 @@ jobs:
 
       - name: Compile
         run: npm run compile
-
-      - name: Lint
-        run: npm run lint
 
       - name: Test
         run: npm test

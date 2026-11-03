@@ -280,22 +280,32 @@ compiler, `prerequisite.toml`'s `[archive.typescript]`, and zips the VSIX
 by PowerShell into `.local-work/package/vscode`: `extension.vsixmanifest`,
 `[Content_Types].xml` and `extension/`. No vsce. The landing compiles the
 same way and says SKIPPED where the compiler is absent. The shell is
-TypeScript, its ESLint configuration too (`eslint.config.ts`); the estate
-holds no hand-written JavaScript (the root's `test/JavaScript.Test.ps1`).
+TypeScript, checked by its compiler alone — strict, and refusing unused
+code, a missing return, a fallthrough, an unmarked override and an index
+read as present — with no linter: ESLint went on 2026-11-03, because
+`typescript-eslint` held the shell's TypeScript below its latest release and
+the compiler's own checks are the better way (the owner). The estate holds
+no hand-written JavaScript (the root's `test/JavaScript.Test.ps1`). VS Code
+runs nothing else, so this shell is the one place it stands, kept to the
+minimum and every package at its latest release (the owner, 2026-11-03).
 Nothing the extension runs is fetched: the webview loads only its own files,
 and no schema, catalogue, icon, font or package is reached for at run time.
 
-Every rule is the Rust server's and tested in Rust. The shell's lint and its
-tests run in this repository's CI alone (`.github/workflows/verify.yml`),
-where Node.js lives in a throwaway runner: `npm ci`, `npm run compile` with
-TypeScript 6, which the latest typescript-eslint still needs, `npm run lint`
-and `npm test`, which runs in plain node with the `vscode` API and the
+Every rule is the Rust server's and tested in Rust. The shell's tests run in
+this repository's CI alone (`.github/workflows/verify.yml`), where Node.js
+lives in a throwaway runner: `npm ci`, `npm run compile` and `npm test`,
+which runs in plain node with the `vscode` API and the
 language client replaced by recording stubs — that activation registers the
 commands and the designer and starts the server from the settings, that the
 designer carries the webview's messages to the server and applies the text
 edit it answers, and that its page reaches nothing online. Locally they are
-SKIPPED. Then point the `xmip.server.path` setting at
+SKIPPED. Run with `update`, the same job first raises every package to its
+latest release, a major included, sets `engines.vscode` to the
+`@types/vscode` it installed, writes the lock anew, and hands back
+`package.json` and `package-lock.json` as the run's `extension-packages`
+artifact to land; it never pushes. Then point the `xmip.server.path` setting at
 `target/debug/xmip-lsp` and install the VSIX (`code --install-extension`).
+
 ## Shared governance
 
 Licensing is explicit in [LICENSE](LICENSE). Contribution, security, support,
@@ -303,4 +313,4 @@ issue and pull-request defaults are inherited from
 [IlleNilsson/.github](https://github.com/IlleNilsson/.github) when they are
 not overridden locally. The included workflow is manual-only and verifies the
 Rust half through `IlleNilsson/.github@v1` and the TypeScript half with
-`npm ci`, compile, lint and test (ADR-0052 clause 6).
+`npm ci`, compile and test (ADR-0052 clause 6).

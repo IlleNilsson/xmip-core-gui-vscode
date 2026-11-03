@@ -85,7 +85,6 @@
   "scripts": {
     "compile": "tsc -p ./ && tsc -p ./webview",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint --flag unstable_native_nodejs_ts_config src webview",
     "pretest": "npm run compile",
     "test": "node --test \"out/test/**/*.test.js\""
   },
@@ -93,11 +92,8 @@
     "vscode-languageclient": "^10.1.2"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.5",
     "@types/vscode": "^1.140.0",
-    "eslint": "^10.13.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.0"
+    "typescript": "^6.0.3"
   }
 }
