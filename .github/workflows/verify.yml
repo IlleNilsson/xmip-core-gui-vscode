@@ -3,6 +3,13 @@ name: Verify
 # Automatic push, pull-request and scheduled triggers are intentionally absent.
 on:
   workflow_dispatch:
+    inputs:
+      update:
+        description: >-
+          Raise every package to its latest release first, and hand back the
+          new package.json and package-lock.json; Node.js runs here alone
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,6 +42,17 @@ jobs:
       - name: Install dependencies from the lock
         run: npm ci
 
+      # Every package at its latest release, a major included (CONTRIBUTING),
+      # and the VS Code the extension needs is the one its API types are for.
+      - name: Raise every package to its latest release
+        if: ${{ inputs.update }}
+        run: |
+          npm install $(jq -r '.dependencies // {} | keys[] | . + "@latest"' package.json)
+          npm install --save-dev $(jq -r '.devDependencies // {} | keys[] | . + "@latest"' package.json)
+          types=$(jq -r '.devDependencies["@types/vscode"]' package.json)
+          jq --arg v "$types" '.engines.vscode = $v' package.json > package.json.new
+          mv package.json.new package.json
+
       - name: Compile
         run: npm run compile
 
@@ -43,3 +61,13 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # Handed back, never pushed: the workflow reads the repository only.
+      - name: Hand back the raised manifest and lock
+        if: ${{ inputs.update }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: extension-packages
+          path: |
+            extension/package.json
+            extension/package-lock.json
