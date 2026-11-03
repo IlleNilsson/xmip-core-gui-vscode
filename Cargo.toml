@@ -27,7 +27,7 @@ net = { package = "xmip-core-library-net", git = "https://github.com/IlleNilsson
 abi = { package = "xmip-core-abi", git = "https://github.com/IlleNilsson/xmip-core-abi", branch = "main" }
 # Loading the runtime's native library by path: the one route through the
 # C ABI, the same call the desktop GUI makes through Xmip.Abi.
-libloading = "0.8"
+libloading = "0.9"
 # The messages of the Language Server Protocol are JSON-RPC.
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
