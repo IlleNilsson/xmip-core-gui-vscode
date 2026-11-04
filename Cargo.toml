@@ -9,6 +9,8 @@ license = "AGPL-3.0-or-later"
 repository = "https://github.com/IlleNilsson/xmip-core-gui-vscode"
 description = "The VS Code extension, the developer's face of the configuration tool: a TypeScript shell around a Rust language server that validates a node configuration or an Xmip Application through the ABI (ADR-0014, amendment 2026-09-10) and draws an Application's routes in a designer (ADR-0064). A xmip-core-gui technology."
 publish = false
+# Links the Xmip mark into xmip-lsp as its Windows icon.
+build = ".src/build.rs"
 
 # The substance of this repository is the language server; the TypeScript
 # shell in extension/ starts it and shows what it says.
