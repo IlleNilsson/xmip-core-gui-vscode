@@ -195,7 +195,7 @@ void test("a compile writes the unit's crate and module entry beside the design"
     [
       ["/designs/orders-flow/Cargo.toml", "[package]"],
       ["/designs/orders-flow/src/lib.rs", "process::export_work_process!"],
-      ["/designs/orders-flow/module.toml", "[[modules]]"],
+      ["/designs/orders-flow/module.xmip", "[[modules]]"],
     ],
   );
   assert.deepEqual(posted, [{ type: "compiled", folder: "orders-flow" }]);

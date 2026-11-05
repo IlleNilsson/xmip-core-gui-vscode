@@ -1,7 +1,7 @@
 //! `xmip-lsp`: the language server behind the VS Code extension, the
 //! developer's face of the configuration tool (ADR-0014, amendment
 //! 2026-09-10). It speaks the Language Server Protocol over stdio and
-//! validates a cluster's `xmip.toml`, its Xmip Applications among its
+//! validates a cluster's `cluster.xmip`, its Xmip Applications among its
 //! sections, or a node configuration through the runtime's C ABI — the
 //! same `xmip_validate_v1`
 //! the desktop GUI calls, reached by loading the runtime's native library

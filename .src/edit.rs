@@ -1,4 +1,4 @@
-//! The edits the editor makes to the cluster's `xmip.toml`, each one of
+//! The edits the editor makes to `cluster.xmip`, each one of
 //! `xmip_cluster_edit_v1`'s (`xmip_operate.h` section 10): the server says
 //! which edit, in the shape `xmip-core-configure`'s `ClusterEdit` reads, and
 //! the runtime makes it and answers the text. No TOML is written here but

@@ -1,4 +1,4 @@
-//! Lookups in the cluster's `xmip.toml` (ADR-0064, amendment 2026-10-13):
+//! Lookups in `cluster.xmip` (ADR-0064, amendment 2026-10-13):
 //! go to a definition, find every reference, hover on a key, a name or a
 //! reference, the outline, and a rename across the file.
 //!

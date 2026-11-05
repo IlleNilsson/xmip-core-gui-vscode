@@ -3,7 +3,7 @@
 // hands it the runtime's path, and shows what comes back. Nothing here
 // validates anything: that is the server's, through the runtime's C ABI.
 // The designer (ADR-0064, amendment 2026-10-03) is a view of the cluster's
-// one xmip.toml, registered here and carried in designer.ts; it holds no
+// one cluster.xmip, registered here and carried in designer.ts; it holds no
 // rule either. The Work Process designer (ADR-0066, amendment 2026-10-22)
 // draws a .bpmn design and is carried in process.ts, ruleless too. The
 // commands that create, rename and delete (commands.ts) ask what the server
@@ -81,7 +81,7 @@ async function start(output: vscode.LogOutputChannel): Promise<void> {
     args: runtime === "" ? [] : ["--runtime", runtime],
   };
   const options: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", pattern: "**/*.toml" }],
+    documentSelector: [{ scheme: "file", pattern: "**/*.xmip" }],
     outputChannel: output,
   };
 
@@ -129,11 +129,11 @@ async function openOperations(): Promise<void> {
   await vscode.commands.executeCommand("simpleBrowser.show", url);
 }
 
-/** The command: open the active document, the cluster's xmip.toml, in the designer. */
+/** The command: open the active document, cluster.xmip, in the designer. */
 async function openDesigner(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (editor === undefined) {
-    void vscode.window.showInformationMessage("Xmip: open the cluster's xmip.toml first.");
+    void vscode.window.showInformationMessage("Xmip: open cluster.xmip first.");
     return;
   }
   await vscode.commands.executeCommand("vscode.openWith", editor.document.uri, viewType);

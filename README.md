@@ -22,8 +22,8 @@ Two parts, and the second is the substance:
 
 ## What it does
 
-A `.toml` document is validated on open, change and save, and the runtime's
-own report becomes diagnostics. The runtime reads a cluster's `xmip.toml` —
+A `.xmip` document is validated on open, change and save, and the runtime's
+own report becomes diagnostics. The runtime reads a cluster's `cluster.xmip` —
 its Xmip Applications among its sections — or a node's configuration and
 tells them apart itself. The command **Xmip: Validate node
 configuration** (`xmip/validate` to the server) prints the whole report to the
@@ -48,7 +48,7 @@ loaded as `load-runtime`, and as failures a refused argument (`start`), a
 library that could not be loaded (`load-runtime`), a validation the runtime
 could not answer (`validate`), a broken stdio stream (`serve`) and every
 panic (`unhandled`). A failure the server retries on every keystroke is
-recorded once per reason. The records go to `audit.toml` in
+recorded once per reason. The records go to `audit.xmip` in
 `XMIP_AUDIT_DIRECTORY`, or to the operating system's log where none is set;
 the audit capability writes every one.
 
@@ -83,12 +83,12 @@ kind, a required one missing — comes back as the runtime's diagnostics.
 technology's declaration, for the Location form the next slice draws
 (`.src/settings.rs`).
 
-## Editing the cluster's xmip.toml
+## Editing cluster.xmip
 
 The owner, 2026-10-13, trying the extension: *Nice attempt, but not really
 useful VS Code extension* — it must *Create, Edit, Delete. Suggestions,
 Lookups, Validations* (ADR-0064, amendment 2026-10-13). In the text editor
-over the cluster's `xmip.toml`:
+over `cluster.xmip`:
 
 - **Suggestions** (Ctrl+Space, and on `"`, `[`, `.`, `=`, `{`, `,`): on a
   line opening with `[`, every header the file may open, a node's tables
@@ -144,7 +144,7 @@ amendment 2026-10-22).
 
 ## The cluster designer
 
-Developers and operators work on one `xmip.toml` per cluster, its Xmip
+Developers and operators work on one `cluster.xmip` per cluster, its Xmip
 Applications among its sections, and publishing slices it into the file each
 node runs (ADR-0064 and ADR-0031, amendments 2026-10-03;
 `module/platform/configure/doc/cluster-configuration.md`); a node's own file
@@ -152,7 +152,7 @@ is never edited (ADR-0031, amendment 2026-10-05). The Operation Desktop's
 Configure page edits the same file through the same section 10 exports, and
 slices and ships it on save (`../README.md`). That file opens
 in the **Xmip cluster designer**, a custom editor over the same text:
-**Open With...** on `xmip.toml`, or the command **Xmip: Open in the cluster
+**Open With...** on `cluster.xmip`, or the command **Xmip: Open in the cluster
 designer**. The text editor and the designer are two views of one document,
 and a change in either shows in the other.
 
@@ -239,8 +239,8 @@ timer's duration. What keeps the design from compiling is shown on the step
 it names. **Compile** asks for the unit's module name and writes the Work
 Process unit beside the design, in a folder of that name: its crate's
 `Cargo.toml` and `src/lib.rs`, built into the library a node loads through
-the module boundary, and `module.toml`, its `[[modules]]` entry for the
-cluster's `xmip.toml`.
+the module boundary, and `module.xmip`, its `[[modules]]` entry for the
+cluster's `cluster.xmip`.
 
 It holds no rule. The webview (`extension/webview/process.ts`, TypeScript
 and SVG) draws what the server sends and forwards what the developer does;
@@ -270,10 +270,10 @@ the diagnostics, the runtime loader, the protocol and the designer's layout
 and text edits; those that need the built runtime — the library
 `XMIP_RUNTIME_LIBRARY` names, else
 `../../../../platform/runtime/target/debug`, the estate's own build, found
-once in `.src/built.rs` — validate `../samples/xmip.toml` (the cluster the
+once in `.src/built.rs` — validate `../samples/cluster.xmip` (the cluster the
 desktop GUI edits and starts a node of, read from the repository beside this
 one, never copied), ask every editing request of the test cluster's
-`xmip.toml` (the estate's `test/xmip.toml`, or the file `XMIP_TEST_CLUSTER`
+`cluster.xmip` (the estate's `test/cluster.xmip`, or the file `XMIP_TEST_CLUSTER`
 names, its nodes' names read from it through the runtime, never written)
 with an Xmip Application added to it — suggestions, definition,
 references, hover, the outline, rename, code actions, each command and
@@ -288,7 +288,7 @@ estate's PowerShell module, restores the packages it compiles against and
 runs with from `extension/package-lock.json` — each tarball checked against
 the lock's integrity — compiles the shell and its webview (`tsconfig.json`,
 `webview/tsconfig.json`, for the browser) with TypeScript 7's native
-compiler, `prerequisite.toml`'s `[archive.typescript]`, and zips the VSIX
+compiler, `prerequisite.xmip`'s `[archive.typescript]`, and zips the VSIX
 by PowerShell into `.local-work/package/vscode`: `extension.vsixmanifest`,
 `[Content_Types].xml` and `extension/`. No vsce. The landing compiles the
 same way and says SKIPPED where the compiler is absent. The shell is

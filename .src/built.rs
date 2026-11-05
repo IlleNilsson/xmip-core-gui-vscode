@@ -34,13 +34,13 @@ pub fn runtime_library() -> Option<PathBuf> {
 /// reads it.
 const CLUSTER_VARIABLE: &str = "XMIP_TEST_CLUSTER";
 
-/// The test cluster's `xmip.toml`: the file `XMIP_TEST_CLUSTER` names, else
-/// the estate's `test/xmip.toml`, five levels up from this crate. Its nodes'
+/// The test cluster's `cluster.xmip`: the file `XMIP_TEST_CLUSTER` names, else
+/// the estate's `test/cluster.xmip`, five levels up from this crate. Its nodes'
 /// names are read from it through the runtime, never written in a test
 /// (`test/NodeName.Test.ps1`).
 pub fn test_cluster() -> String {
     let path = std::env::var_os(CLUSTER_VARIABLE).map_or_else(
-        || Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../../test/xmip.toml"),
+        || Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../../test/cluster.xmip"),
         PathBuf::from,
     );
     std::fs::read_to_string(&path)

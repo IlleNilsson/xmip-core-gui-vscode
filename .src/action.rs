@@ -1,4 +1,4 @@
-//! Create, rename and delete in the cluster's `xmip.toml` (ADR-0064,
+//! Create, rename and delete in `cluster.xmip` (ADR-0064,
 //! amendment 2026-10-13): the code actions where the cursor is, the
 //! commands they run, and the lists the extension's commands choose from.
 //!

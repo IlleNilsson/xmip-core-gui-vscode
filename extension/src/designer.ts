@@ -1,5 +1,5 @@
 // The designer (ADR-0064, amendment 2026-10-03): a custom editor over the
-// cluster's one xmip.toml, a view per artifact kind. It holds no rule. The
+// cluster's one cluster.xmip, a view per artifact kind. It holds no rule. The
 // webview draws what xmip-lsp answers and forwards what the developer does;
 // the server asks the runtime's library, and xmip-core-configure says what
 // the file means and how an edit changes the text. This file only carries

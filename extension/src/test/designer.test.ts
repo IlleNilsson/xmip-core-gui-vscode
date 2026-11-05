@@ -102,7 +102,7 @@ const webview = {
 const panel = { webview, onDidDispose: () => disposable };
 
 const document = {
-  uri: { toString: () => "file:///cluster/xmip.toml" },
+  uri: { toString: () => "file:///cluster/cluster.xmip" },
   version: 1,
   getText: () => "[service]\nname = \"xmip\"\n",
 };
@@ -176,7 +176,7 @@ void test("an edit is the server's text edit, applied to the document", async ()
 
   assert.deepEqual(client.asked[0]?.params.edit, edit);
   assert.deepEqual(applied, [
-    { uri: "file:///cluster/xmip.toml", range: [2, 0, 2, 0], text: answer.newText },
+    { uri: "file:///cluster/cluster.xmip", range: [2, 0, 2, 0], text: answer.newText },
   ]);
 });
 
@@ -224,7 +224,7 @@ void test("a change made in the text editor draws the views again", async () => 
   const client = new ScriptedClient({ "xmip/views": { cluster: "" } });
   await designer(client);
 
-  changeListener?.({ document: { uri: { toString: () => "file:///elsewhere.toml" } } });
+  changeListener?.({ document: { uri: { toString: () => "file:///elsewhere.xmip" } } });
   changeListener?.({ document });
   await settled();
 

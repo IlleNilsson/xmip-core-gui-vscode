@@ -4,9 +4,9 @@
 //! client says so. Documents are held whole — the server asks for full
 //! synchronization — because validation needs the whole text and a
 //! cluster's file or a node configuration is small. Only documents named
-//! `.toml` are validated, and the runtime tells the two apart; the rest are
+//! `.xmip` are validated, and the runtime tells the two apart; the rest are
 //! held and never reported on. The designer's requests, over the cluster's
-//! one `xmip.toml`, are `designer.rs`'s (ADR-0064, amendment 2026-10-03).
+//! one `cluster.xmip`, are `designer.rs`'s (ADR-0064, amendment 2026-10-03).
 //!
 //! What it does to the runtime is audited (ADR-0062): a library loaded as
 //! `load-runtime`, and a library that could not be loaded or a validation
@@ -380,7 +380,7 @@ fn uri_of(params: &Value) -> String {
 pub(crate) fn is_toml(uri: &str) -> bool {
     Path::new(uri)
         .extension()
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("toml"))
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("xmip"))
 }
 
 #[cfg(test)]
@@ -462,7 +462,7 @@ mod tests {
         let (out, _) = handle(
             &mut server(),
             &json!({"method": "textDocument/didOpen", "params": {"textDocument": {
-                "uri": "file:///c:/node/edge-01.xmip.toml", "text": "[service]\n"}}}),
+                "uri": "file:///c:/node/edge-01.xmip", "text": "[service]\n"}}}),
         );
 
         assert_eq!(out.len(), 1);
@@ -494,7 +494,7 @@ mod tests {
     #[test]
     fn change_and_save_republish_and_close_clears() {
         let mut target = server();
-        let uri = "file:///c:/node/edge-01.xmip.toml";
+        let uri = "file:///c:/node/edge-01.xmip";
         handle(
             &mut target,
             &json!({"method": "textDocument/didOpen", "params": {"textDocument": {
@@ -534,7 +534,7 @@ mod tests {
         let (out, _) = handle(
             &mut server(),
             &json!({"id": 4, "method": "xmip/validate", "params": {"textDocument": {
-                "uri": "file:///c:/node/none.toml"}}}),
+                "uri": "file:///c:/node/none.xmip"}}}),
         );
 
         assert_eq!(out[0]["error"]["code"], INVALID_PARAMS);

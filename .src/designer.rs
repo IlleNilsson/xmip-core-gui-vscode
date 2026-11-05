@@ -1,5 +1,5 @@
 //! The designer's requests (ADR-0064, amendment 2026-10-03): what the VS
-//! Code extension's webview asks of the cluster's one `xmip.toml`, answered
+//! Code extension's webview asks of the cluster's one `cluster.xmip`, answered
 //! from the runtime's library.
 //!
 //! Four custom requests, each one of `xmip_operate.h` section 10's exports:

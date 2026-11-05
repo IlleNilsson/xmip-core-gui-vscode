@@ -1,4 +1,4 @@
-//! Suggestions while the cluster's `xmip.toml` is typed (ADR-0064,
+//! Suggestions while `cluster.xmip` is typed (ADR-0064,
 //! amendment 2026-10-13): a table's header, a table's keys, and a key's
 //! value — a choice's words, a role word, the names a reference may take,
 //! the properties and operators a filter is written with.

@@ -1,7 +1,7 @@
 //! A Work Process design read, edited and compiled for the Work Process
 //! designer (ADR-0066, amendment 2026-10-22). Here and not in the
 //! runtime's library: a platform service names no technology
-//! (`architecture.toml`), and the design formats are technologies, which
+//! (`architecture.xmip`), and the design formats are technologies, which
 //! the developer's tooling carries.
 //!
 //! Nothing here is a rule. How a design is drawn and edited is its

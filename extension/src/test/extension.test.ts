@@ -163,7 +163,7 @@ void test("the designer command with no editor open says so instead of opening",
 
   await open();
 
-  assert.equal(messages.at(-1), "Xmip: open the cluster's xmip.toml first.");
+  assert.equal(messages.at(-1), "Xmip: open cluster.xmip first.");
   assert.deepEqual(executed, []);
 });
 

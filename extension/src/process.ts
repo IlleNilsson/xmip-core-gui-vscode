@@ -107,7 +107,7 @@ export class ProcessDesigner implements vscode.CustomTextEditorProvider {
   /**
    * The design compiled into its Work Process unit, written beside it in a
    * folder of the module's name: the crate's Cargo.toml and src/lib.rs, and
-   * module.toml, the [[modules]] entry for the cluster's xmip.toml.
+   * module.xmip, the [[modules]] entry for cluster.xmip.
    */
   private async compile(document: vscode.TextDocument, webview: vscode.Webview): Promise<void> {
     const module = await vscode.window.showInputBox({
@@ -128,7 +128,7 @@ export class ProcessDesigner implements vscode.CustomTextEditorProvider {
       vscode.workspace.fs.writeFile(vscode.Uri.joinPath(folder, name), Buffer.from(text, "utf8"));
     await write("Cargo.toml", compiled.cargo);
     await write("src/lib.rs", compiled.library);
-    await write("module.toml", compiled.module);
+    await write("module.xmip", compiled.module);
     await webview.postMessage({ type: "compiled", folder: compiled.crate });
   }
 

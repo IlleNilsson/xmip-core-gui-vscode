@@ -1,4 +1,4 @@
-//! The editor's requests over the cluster's `xmip.toml` (ADR-0064,
+//! The editor's requests over `cluster.xmip` (ADR-0064,
 //! amendment 2026-10-13: *Create, Edit, Delete. Suggestions, Lookups,
 //! Validations*), each answered from the runtime's reading of the document
 //! ([`Model`]) and made, where it changes the text, by the runtime's one
@@ -262,7 +262,7 @@ mod tests {
     use crate::model::list;
     use crate::text::position;
 
-    const URI: &str = "file:///c:/cluster/xmip.toml";
+    const URI: &str = "file:///c:/cluster/cluster.xmip";
 
     /// The test cluster, an Xmip Application added as its section and
     /// bound, its Receive Location taken by the cluster's first node; the

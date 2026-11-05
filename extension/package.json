@@ -1,7 +1,7 @@
 {
   "name": "xmip",
   "displayName": "Xmip",
-  "description": "Validates a cluster's xmip.toml, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it; suggests every key and value, looks up definitions and references, creates, renames and deletes entries and fixes what the runtime reports; designs the cluster's one xmip.toml view by view; draws a Work Process in BPMN 2.0 and compiles it into its unit; and opens the Operations Web, to see what a change does.",
+  "description": "Validates a cluster's cluster.xmip, its Xmip Applications among its sections, or an Xmip node configuration through the runtime itself, as you edit it; suggests every key and value, looks up definitions and references, creates, renames and deletes entries and fixes what the runtime reports; designs cluster.xmip view by view; draws a Work Process in BPMN 2.0 and compiles it into its unit; and opens the Operations Web, to see what a change does.",
   "version": "0.1.0",
   "publisher": "IlleNilsson",
   "icon": "media/xmip-x.png",
@@ -18,7 +18,7 @@
     "Visualization"
   ],
   "activationEvents": [
-    "workspaceContains:**/*.toml",
+    "workspaceContains:**/*.xmip",
     "workspaceContains:**/*.bpmn"
   ],
   "main": "./out/extension.js",
@@ -38,15 +38,22 @@
       },
       {
         "command": "xmip.add",
-        "title": "Xmip: Add to the cluster's xmip.toml"
+        "title": "Xmip: Add to cluster.xmip"
       },
       {
         "command": "xmip.rename",
-        "title": "Xmip: Rename in the cluster's xmip.toml"
+        "title": "Xmip: Rename in cluster.xmip"
       },
       {
         "command": "xmip.delete",
-        "title": "Xmip: Delete from the cluster's xmip.toml"
+        "title": "Xmip: Delete from cluster.xmip"
+      }
+    ],
+    "languages": [
+      {
+        "id": "toml",
+        "aliases": ["TOML"],
+        "extensions": [".xmip"]
       }
     ],
     "customEditors": [
@@ -55,7 +62,7 @@
         "displayName": "Xmip cluster designer",
         "selector": [
           {
-            "filenamePattern": "xmip.toml"
+            "filenamePattern": "cluster.xmip"
           }
         ],
         "priority": "option"

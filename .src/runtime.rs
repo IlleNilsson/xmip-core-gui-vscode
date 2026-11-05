@@ -345,13 +345,13 @@ mod tests {
     use crate::built::runtime_library as built_runtime;
 
     /// The cluster the desktop GUI edits and starts a node of,
-    /// `gui/samples/xmip.toml` beside this repository: one fixture, shared,
+    /// `gui/samples/cluster.xmip` beside this repository: one fixture, shared,
     /// never copied (ADR-0052). Read at test time rather than included,
     /// because the sample is only where the built runtime is — in the estate
     /// — and a checkout of this repository alone must still compile its
     /// tests.
     fn sample_cluster() -> String {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../samples/xmip.toml");
+        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../samples/cluster.xmip");
 
         std::fs::read_to_string(&sample)
             .unwrap_or_else(|error| panic!("no sample cluster at {}: {error}", sample.display()))

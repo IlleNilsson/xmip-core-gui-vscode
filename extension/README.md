@@ -1,12 +1,12 @@
 # Xmip
 
-Validates a cluster's `xmip.toml`, its Xmip Applications among its
+Validates a cluster's `cluster.xmip`, its Xmip Applications among its
 sections, or an Xmip node configuration through the runtime itself, as you
 edit it. Diagnostics appear
 on open, change and save; **Xmip: Validate node configuration** prints the
 runtime's whole report to the Xmip output channel.
 
-A cluster's one `xmip.toml` also opens in the **Xmip cluster designer**
+A cluster's one `cluster.xmip` also opens in the **Xmip cluster designer**
 (**Open With...**, or **Xmip: Open in the cluster designer**): a view per
 artifact — Cluster, Node, Party, Module, Receive Port, Receive Location,
 Send Port, Send Location, Send Port Group, Prepare, Promote, Demote, Route,

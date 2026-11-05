@@ -1,5 +1,5 @@
 // The designer's webview (ADR-0064, amendments 2026-10-03 and 2026-10-22): the
-// cluster's one xmip.toml, a view per artifact kind, navigated by kind, then
+// cluster's one cluster.xmip, a view per artifact kind, navigated by kind, then
 // entry. Each entry's values are shown as the file writes them and edited in
 // place, and what may be set on it is offered; a Route entry is an Xmip
 // Application, drawn by routes.ts. It holds no rule: which kinds exist, where

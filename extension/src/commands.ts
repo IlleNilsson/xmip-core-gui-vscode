@@ -1,4 +1,4 @@
-// The commands that create, rename and delete in the cluster's xmip.toml
+// The commands that create, rename and delete in cluster.xmip
 // (ADR-0064, amendment 2026-10-13). Each asks the developer what the
 // server says to ask — which place, which entry, a name, each answer — and
 // runs the server's command with the answers; the server makes the edit
@@ -79,7 +79,7 @@ async function listed<T>(client: () => LanguageClient | undefined, method: strin
   const uri = active();
   const running = client();
   if (uri === undefined || running === undefined) {
-    void vscode.window.showInformationMessage("Xmip: open the cluster's xmip.toml first.");
+    void vscode.window.showInformationMessage("Xmip: open cluster.xmip first.");
     return [];
   }
   return running.sendRequest<T[]>(method, { textDocument: { uri } });

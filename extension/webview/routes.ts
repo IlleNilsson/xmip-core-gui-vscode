@@ -1,5 +1,5 @@
 // The Route view (ADR-0064): an Xmip Application held as a section of the
-// cluster's xmip.toml, its routes drawn as the graph xmip-lsp sends, and a
+// cluster's cluster.xmip, its routes drawn as the graph xmip-lsp sends, and a
 // filter editor in the shape of the classic filter dialog — rows of
 // property, operator and value, gathered in And and Or groups. It holds no
 // rule: what may route where, which operators and kinds exist, where a node
