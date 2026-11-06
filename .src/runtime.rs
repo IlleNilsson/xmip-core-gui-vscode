@@ -16,8 +16,9 @@
 //! true length, so nothing is truncated silently.
 
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Mutex, PoisonError};
+use xcore::lock::Locked;
 
 use abi::ffi::{Str, status};
 use abi::operate::catalogue::{CatalogueFn, TECHNOLOGY_CATALOGUE_ENTRYPOINT};
@@ -131,7 +132,7 @@ impl Runtime {
     // exactly the contract xmip_operate.h states.
     #[allow(unsafe_code)]
     pub fn validate(&self, configuration: &str) -> Result<Validation, String> {
-        let _held = self.gate.lock().unwrap_or_else(PoisonError::into_inner);
+        let _held = self.gate.locked();
         let library = self
             .library
             .as_ref()
@@ -161,7 +162,7 @@ impl Runtime {
     // and its capacity out, the contract xmip_operate.h section 10 states.
     #[allow(unsafe_code)]
     pub fn design(&self, entrypoint: &str, input: &str, argument: &str) -> Result<Answer, String> {
-        let _held = self.gate.lock().unwrap_or_else(PoisonError::into_inner);
+        let _held = self.gate.locked();
         let library = self
             .library
             .as_ref()
@@ -196,7 +197,7 @@ impl Runtime {
     // the contract xmip_operate.h section 12 states.
     #[allow(unsafe_code)]
     pub fn catalogue(&self, technology: &str) -> Result<Answer, String> {
-        let _held = self.gate.lock().unwrap_or_else(PoisonError::into_inner);
+        let _held = self.gate.locked();
         let library = self
             .library
             .as_ref()
@@ -229,7 +230,7 @@ impl Runtime {
     // the fill shape xmip_operate.h section 5 states.
     #[allow(unsafe_code)]
     pub fn role_words(&self) -> Result<Vec<String>, String> {
-        let _held = self.gate.lock().unwrap_or_else(PoisonError::into_inner);
+        let _held = self.gate.locked();
         let library = self
             .library
             .as_ref()
