@@ -295,7 +295,7 @@ fn asked(call: impl Fn(*mut u8, usize, *mut usize) -> i32) -> (i32, String) {
     }
     text.truncate(needed.min(text.len()));
 
-    (status, String::from_utf8_lossy(&text).into_owned())
+    (status, String::from_utf8_lossy_owned(text))
 }
 
 impl Drop for Runtime {

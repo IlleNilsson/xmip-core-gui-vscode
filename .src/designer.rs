@@ -198,6 +198,7 @@ pub fn text_edit(old: &str, new: &str) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::assert_matches;
 
     /// The runtime the estate built, when it built one.
     fn built() -> Option<Runtime> {
@@ -369,10 +370,7 @@ mod tests {
             &json!({ "filter": "{ x = 1 }" }),
             None,
         );
-        assert!(
-            matches!(refused, Err(Unanswered::Refused(_))),
-            "{refused:?}"
-        );
+        assert_matches!(refused, Err(Unanswered::Refused(_)), "{refused:?}");
     }
 
     #[test]
@@ -439,9 +437,6 @@ mod tests {
             "subscription": "billing", "target": "send-port:Audit" } })) }),
             Some(ORDERS),
         );
-        assert!(
-            matches!(refused, Err(Unanswered::Refused(_))),
-            "{refused:?}"
-        );
+        assert_matches!(refused, Err(Unanswered::Refused(_)), "{refused:?}");
     }
 }
