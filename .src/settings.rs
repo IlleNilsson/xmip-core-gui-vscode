@@ -300,6 +300,7 @@ fn snippet(setting: &Value) -> String {
             }
         ),
         Some("boolean") => "${1|true,false|}".to_string(),
+        Some("table") => "{ ${1:key} = \"${2}\" }".to_string(),
         Some("choice") => {
             let choices: Vec<&str> = setting["choices"]
                 .as_array()
@@ -460,6 +461,10 @@ mod tests {
             "group is a receive setting, topic is written"
         );
         assert_eq!(items[0]["insertText"], "acks = \"${1|none,all|}\"");
+        assert_eq!(
+            snippet(&json!({"kind": "table"})),
+            "{ ${1:key} = \"${2}\" }"
+        );
         assert!(
             items[0]["detail"]
                 .as_str()
