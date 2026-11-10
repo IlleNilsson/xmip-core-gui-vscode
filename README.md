@@ -48,7 +48,7 @@ loaded as `load-runtime`, and as failures a refused argument (`start`), a
 library that could not be loaded (`load-runtime`), a validation the runtime
 could not answer (`validate`), a broken stdio stream (`serve`) and every
 panic (`unhandled`). A failure the server retries on every keystroke is
-recorded once per reason. The records go to `audit.xmip` in
+recorded once per reason. The records go to `audit.toml` in
 `XMIP_AUDIT_DIRECTORY`, or to the operating system's log where none is set;
 the audit capability writes every one.
 
@@ -239,7 +239,7 @@ timer's duration. What keeps the design from compiling is shown on the step
 it names. **Compile** asks for the unit's module name and writes the Work
 Process unit beside the design, in a folder of that name: its crate's
 `Cargo.toml` and `src/lib.rs`, built into the library a node loads through
-the module boundary, and `module.xmip`, its `[[modules]]` entry for the
+the module boundary, and `module.toml`, its `[[modules]]` entry for the
 cluster's `cluster.xmip`.
 
 It holds no rule. The webview (`extension/webview/process.ts`, TypeScript
@@ -288,7 +288,7 @@ estate's PowerShell module, restores the packages it compiles against and
 runs with from `extension/package-lock.json` — each tarball checked against
 the lock's integrity — compiles the shell and its webview (`tsconfig.json`,
 `webview/tsconfig.json`, for the browser) with TypeScript 7's native
-compiler, `prerequisite.xmip`'s `[archive.typescript]`, and zips the VSIX
+compiler, `prerequisite.toml`'s `[archive.typescript]`, and zips the VSIX
 by PowerShell into `.local-work/package/vscode`: `extension.vsixmanifest`,
 `[Content_Types].xml` and `extension/`. No vsce. The landing compiles the
 same way and says SKIPPED where the compiler is absent. The shell is
