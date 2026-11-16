@@ -44,9 +44,9 @@ pub(crate) const REFUSED: i64 = -32002;
 
 /// What every validation says when no runtime library was named.
 pub const NOT_NAMED: &str = "no runtime library was named: set the setting xmip.runtime.library \
-    to the full path of the runtime's native library — xmip_core_runtime.dll on Windows, \
-    libxmip_core_runtime.so on Linux, libxmip_core_runtime.dylib on macOS — which cargo build \
-    leaves in module/platform/runtime/target/debug of the estate; or start the server with \
+    to the full path of the runtime's native library — xmip_core_operate.dll on Windows, \
+    libxmip_core_operate.so on Linux, libxmip_core_operate.dylib on macOS — which cargo build \
+    leaves in module/core/operation/operate/target/debug of the estate; or start the server with \
     --runtime <path>";
 
 /// The server's state between messages.
@@ -386,13 +386,15 @@ pub(crate) fn is_toml(uri: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use audit_file::FileSink;
 
-    const NOWHERE: &str = "Z:/no/such/xmip_core_runtime.dll";
+    const NOWHERE: &str = "Z:/no/such/xmip_core_operate.dll";
 
     /// An audit into a directory of the test's own, so a test never writes
     /// to the operating system's log. Numbered, because tests run at once
     /// and one clearing another's directory sent a record to that log.
-    fn audit(name: &str) -> ProgramAudit {
+    /// A directory of its own for `name`'s audit, empty.
+    fn audited(name: &str) -> PathBuf {
         static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let number = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let directory = std::env::temp_dir().join(format!(
@@ -400,7 +402,11 @@ mod tests {
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&directory);
-        ProgramAudit::new(NAME, Some(&directory))
+        directory
+    }
+
+    fn audit(name: &str) -> ProgramAudit {
+        ProgramAudit::new(NAME, Some(FileSink::new(audited(name))))
     }
 
     /// A server whose runtime is nowhere, so every validation reports that.
@@ -567,14 +573,15 @@ mod tests {
     /// every validation makes is not a new failure each time.
     #[test]
     fn a_runtime_that_cannot_be_loaded_is_audited_once_per_reason() {
-        let audit = audit("unloadable");
-        let mut target = Server::new(Some(PathBuf::from(NOWHERE)), audit.clone());
+        let sink = FileSink::new(audited("unloadable"));
+        let audit = ProgramAudit::new(NAME, Some(sink.clone()));
+        let mut target = Server::new(Some(PathBuf::from(NOWHERE)), audit);
         for id in 0..3 {
             let request = json!({"id": id, "method": "xmip/validate", "params": {"text": "x"}});
             handle(&mut target, &request);
         }
 
-        let file = audit.file().expect("a file sink");
+        let file = sink.path();
         let text = std::fs::read_to_string(&file).expect("the failure was recorded");
         assert_eq!(
             text.matches("action = \"load-runtime\"").count(),

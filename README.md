@@ -32,9 +32,9 @@ Xmip output channel, with the runtime that produced it.
 The runtime library is the one the `--runtime <path>` flag names, which the
 extension passes from its `xmip.runtime.library` setting, required (the
 owner, 2026-10-22); with none named, every validation says where to point
-it — the full path of `xmip_core_runtime.dll`, `libxmip_core_runtime.so` or
-`libxmip_core_runtime.dylib`, which `cargo build` leaves in
-`module/platform/runtime/target/debug`. The server finds no library on its own: runtime
+it — the full path of `xmip_core_operate.dll`, `libxmip_core_operate.so` or
+`libxmip_core_operate.dylib`, which `cargo build` in xmip-core-operate
+leaves in its `target/debug`. The server finds no library on its own: runtime
 discovery is one rule, the .NET surfaces' `RuntimeLibrary`, because a surface
 has to find the runtime before it can call anything in it, and the copy of
 that rule this server kept in Rust went on 2026-09-24 (ADR-0052, amendment of
@@ -48,9 +48,11 @@ loaded as `load-runtime`, and as failures a refused argument (`start`), a
 library that could not be loaded (`load-runtime`), a validation the runtime
 could not answer (`validate`), a broken stdio stream (`serve`) and every
 panic (`unhandled`). A failure the server retries on every keystroke is
-recorded once per reason. The records go to `audit.toml` in
-`XMIP_AUDIT_DIRECTORY`, or to the operating system's log where none is set;
-the audit capability writes every one.
+recorded once per reason. The server hands its audit, as it starts, the file
+sink and its platform's operating system's log, the Windows Event Log or the
+local syslog (`xmip-core-audit-file`, `-windows-event-log`, `-syslog`): the
+records go to `audit.toml` in `XMIP_AUDIT_DIRECTORY`, or to that log where
+none is set; the audit capability writes every one.
 
 ## What happens with a change: Operations
 
@@ -268,8 +270,8 @@ service, never names — forwarding to the design format,
 The server: `cargo build`, then `cargo test`. The tests cover the framing,
 the diagnostics, the runtime loader, the protocol and the designer's layout
 and text edits; those that need the built runtime — the library
-`XMIP_RUNTIME_LIBRARY` names, else
-`../../../../platform/runtime/target/debug`, the estate's own build, found
+`XMIP_RUNTIME_LIBRARY` names, else xmip-core-operate's in
+`../../operate/target/debug`, the estate's own build, found
 once in `.src/built.rs` — validate `../samples/cluster.xmip` (the cluster the
 desktop GUI edits and starts a node of, read from the repository beside this
 one, never copied), ask every editing request of the test cluster's

@@ -108,7 +108,7 @@ async function extension(): Promise<typeof import("../extension.js")> {
 
 void test("activation registers the command and starts the server from the settings", async () => {
   settings.set("server.path", "C:/xmip/target/debug/xmip-lsp.exe");
-  settings.set("runtime.library", "C:/xmip/target/debug/xmip_core_runtime.dll");
+  settings.set("runtime.library", "C:/xmip/target/debug/xmip_core_operate.dll");
 
   const { activate } = await extension();
   await activate(context as unknown as vscode.ExtensionContext);
@@ -126,7 +126,7 @@ void test("activation registers the command and starts the server from the setti
   assert.equal(clients[0]?.server.command, "C:/xmip/target/debug/xmip-lsp.exe");
   assert.deepEqual(clients[0]?.server.args, [
     "--runtime",
-    "C:/xmip/target/debug/xmip_core_runtime.dll",
+    "C:/xmip/target/debug/xmip_core_operate.dll",
   ]);
   assert.equal(clients[0]?.started, 1);
   assert.ok(

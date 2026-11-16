@@ -41,8 +41,8 @@ The extension is a shell around `xmip-lsp`, a language server that loads the
 runtime's native library and calls the same validation the Xmip desktop tool
 calls. Point `xmip.server.path` at the server and `xmip.runtime.library`,
 required, at the runtime's library — the full path of
-`xmip_core_runtime.dll`, `libxmip_core_runtime.so` or
-`libxmip_core_runtime.dylib`; the server looks for no runtime on its own.
+`xmip_core_operate.dll`, `libxmip_core_operate.so` or
+`libxmip_core_operate.dylib`; the server looks for no runtime on its own.
 Nothing is fetched at run time: everything the extension uses is in its
 package.
 

@@ -4,7 +4,7 @@
 //! This is the server's one route to Xmip: `xmip_validate_v1` and section
 //! 10's designer exports (ADR-0064) as `include/xmip_operate.h` declares
 //! them, reached through the C ABI exactly as the desktop GUI reaches it
-//! through `Xmip.Abi` (ADR-0014, amendment 2026-09-10). The server does not
+//! through `Xmip.Operate` (ADR-0014, amendment 2026-09-10). The server does not
 //! link the runtime's crates and the extension does not run the `xmip`
 //! command; the boundary is the header, and this file is the only one that
 //! crosses it, so it is the only one that lifts the crate's
@@ -360,11 +360,11 @@ mod tests {
 
     #[test]
     fn a_missing_library_is_refused_with_its_path() {
-        let path = Path::new("Z:/no/such/xmip_core_runtime.dll");
+        let path = Path::new("Z:/no/such/xmip_core_operate.dll");
         let reason = Runtime::load(path).err().expect("refused");
 
         assert!(reason.starts_with("no runtime library at"), "{reason}");
-        assert!(reason.contains("xmip_core_runtime.dll"));
+        assert!(reason.contains("xmip_core_operate.dll"));
     }
 
     #[test]

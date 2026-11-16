@@ -19,8 +19,10 @@
 //! with the library it was told, `stop` with the exit code (a warning when
 //! the client left without a shutdown), a refused argument as the failure to
 //! `start`, a broken stdio stream as the failure to `serve`, every panic as
-//! `unhandled`, and what `server.rs` does to the runtime. The records go to
-//! `XMIP_AUDIT_DIRECTORY`, else the operating system's log.
+//! `unhandled`, and what `server.rs` does to the runtime. It hands its audit
+//! the file sink, `xmip-core-audit-file`'s, so the records go to
+//! `XMIP_AUDIT_DIRECTORY`, and the operating system's log of its platform
+//! for when they cannot: the Windows Event Log or the local syslog.
 
 mod action;
 #[cfg(test)]
@@ -47,12 +49,17 @@ use std::io::{self, BufReader, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use audit_file::FileSink;
 use server::{Server, kept};
 use xaudit::program_audit::ProgramAudit;
 use xcore::{ExecutionPhase, Severity};
 
 fn main() -> ExitCode {
-    let audit = ProgramAudit::new(server::NAME, None);
+    #[cfg(windows)]
+    xaudit::operating_system_log::hand(audit_windows_event_log::WindowsEventLog);
+    #[cfg(unix)]
+    xaudit::operating_system_log::hand(audit_syslog::Syslog);
+    let audit = ProgramAudit::new(server::NAME, FileSink::stated(None));
     audit.watch_panics();
 
     let path = match runtime_path(std::env::args().skip(1)) {
