@@ -31,14 +31,12 @@ mod completion;
 mod designer;
 mod diagnostic;
 mod edit;
-mod framing;
 mod language;
 mod lookup;
 mod model;
 mod process;
 mod process_design;
 mod quickfix;
-mod rpc;
 mod runtime;
 mod server;
 mod settings;
@@ -50,6 +48,8 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use audit_file::FileSink;
+use net::NetError;
+use net::rpc::content_length;
 use server::{Server, kept};
 use xaudit::program_audit::ProgramAudit;
 use xcore::{ExecutionPhase, Severity};
@@ -110,17 +110,19 @@ fn main() -> ExitCode {
 
 /// Read messages from stdin and answer on stdout until the client says
 /// `exit` or the input ends.
-fn serve(mut server: Server) -> io::Result<u8> {
+/// Each message framed as the protocol's base protocol frames it, by a
+/// `Content-Length` header, through `net::rpc::content_length`.
+fn serve(mut server: Server) -> Result<u8, NetError> {
     let mut reader = BufReader::new(io::stdin().lock());
     let mut writer = io::stdout().lock();
     let mut out = Vec::new();
 
-    while let Some(message) = framing::read_message(&mut reader)? {
+    while let Some(message) = content_length::read(&mut reader)? {
         out.clear();
         let exit = server.handle(&message, &mut out);
 
         for reply in &out {
-            framing::write_message(&mut writer, reply)?;
+            content_length::write(&mut writer, reply)?;
         }
 
         if let Some(code) = exit {
@@ -128,7 +130,9 @@ fn serve(mut server: Server) -> io::Result<u8> {
         }
     }
 
-    writer.flush()?;
+    writer
+        .flush()
+        .map_err(|failed| NetError::from_io("writing to the client", &failed))?;
 
     // The client went away without saying exit: clean only after a shutdown.
     Ok(u8::from(!server.is_shut_down()))

@@ -26,17 +26,14 @@ use xcore::{ExecutionPhase, Severity};
 use crate::designer::{self, Unanswered};
 use crate::diagnostic;
 
-use crate::rpc::{error, publish_diagnostics, response};
 use crate::runtime::{Runtime, Validation};
 use crate::{language, process, settings};
+use net::rpc::code::{INVALID_PARAMS, METHOD_NOT_FOUND};
+use net::rpc::{error, notification, response};
 
 /// The name the server reports to the client.
 pub const NAME: &str = "xmip-lsp";
 
-/// JSON-RPC: the method is not one this server knows.
-const METHOD_NOT_FOUND: i64 = -32601;
-/// JSON-RPC: the parameters are not what the method takes.
-pub(crate) const INVALID_PARAMS: i64 = -32602;
 /// The runtime library could not be reached; the message says why.
 pub(crate) const RUNTIME_UNAVAILABLE: i64 = -32001;
 /// The runtime refused what the designer asked; the message is its sentence.
@@ -368,6 +365,13 @@ fn initialize_result() -> Value {
         "capabilities": capabilities,
         "serverInfo": { "name": NAME, "version": env!("CARGO_PKG_VERSION") },
     })
+}
+
+/// The diagnostics of the document at `uri`, published to the client.
+fn publish_diagnostics(uri: &str, diagnostics: &[Value]) -> Value {
+    let params = json!({ "uri": uri, "diagnostics": diagnostics });
+
+    notification("textDocument/publishDiagnostics", &params)
 }
 
 fn uri_of(params: &Value) -> String {

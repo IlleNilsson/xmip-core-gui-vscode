@@ -11,7 +11,9 @@ Two parts, and the second is the substance:
   runtime's path, and shows what comes back. This is the one place in the
   estate where TypeScript or JavaScript lives, and it stays as thin as the
   VS Code extension host allows.
-- `.src/` — `xmip-lsp`, a Rust language server over stdio. It loads the
+- `.src/` — `xmip-lsp`, a Rust language server over stdio, its JSON-RPC
+  messages and their `Content-Length` framing the net library's
+  (`net::rpc`), the one `xmip mcp` speaks too. It loads the
   runtime's native library and calls `xmip_validate_v1` through
   `xmip_operate.h`: the same call the desktop GUI makes through `Xmip.Abi`,
   and the only route through the boundary. The symbol's name and shape are
@@ -267,8 +269,8 @@ service, never names — forwarding to the design format,
 
 ## Building
 
-The server: `cargo build`, then `cargo test`. The tests cover the framing,
-the diagnostics, the runtime loader, the protocol and the designer's layout
+The server: `cargo build`, then `cargo test`. The tests cover the
+diagnostics, the runtime loader, the protocol and the designer's layout
 and text edits; those that need the built runtime — the library
 `XMIP_RUNTIME_LIBRARY` names, else xmip-core-operate's in
 `../../operate/target/debug`, the estate's own build, found

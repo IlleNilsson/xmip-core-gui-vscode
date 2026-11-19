@@ -24,8 +24,10 @@ path = ".src/main.rs"
 # server declares no struct of its own over the boundary (ADR-0014, amendment
 # of 2026-08-26).
 # A Location's address read for the scheme that chooses its transport,
-# the one reading the runtime uses (ADR-0064, amendment 2026-10-28).
-net = { package = "xmip-core-library-net", git = "https://github.com/IlleNilsson/xmip-core-library-net", branch = "main" }
+# the one reading the runtime uses (ADR-0064, amendment 2026-10-28); and
+# JSON-RPC 2.0, its messages and the Content-Length framing the Language
+# Server Protocol speaks it in (`net::rpc`), the one `xmip mcp` speaks too.
+net ={ package = "xmip-core-library-net", git = "https://github.com/IlleNilsson/xmip-core-library-net", branch = "main", features = ["rpc"] }
 abi = { package = "xmip-core-abi", git = "https://github.com/IlleNilsson/xmip-core-abi", branch = "main" }
 # Loading the runtime's native library by path: the one route through the
 # C ABI, the same call the desktop GUI makes through Xmip.Abi.

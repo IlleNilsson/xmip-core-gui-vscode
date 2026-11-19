@@ -18,11 +18,12 @@ use serde_json::{Value, json};
 
 use crate::designer::{Unanswered, text_edit};
 use crate::model::Model;
-use crate::rpc::{error, response};
 use crate::runtime::Runtime;
-use crate::server::{INVALID_PARAMS, NOT_NAMED, REFUSED, RUNTIME_UNAVAILABLE, Server, is_toml};
+use crate::server::{NOT_NAMED, REFUSED, RUNTIME_UNAVAILABLE, Server, is_toml};
 use crate::text::offset;
 use crate::{action, completion, lookup, quickfix, settings};
+use net::rpc::code::INVALID_PARAMS;
+use net::rpc::{error, response};
 
 const COMPLETION: &str = "textDocument/completion";
 const HOVER: &str = "textDocument/hover";
