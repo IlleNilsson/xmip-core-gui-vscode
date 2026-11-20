@@ -94,7 +94,7 @@
         "xmip.runtime.library": {
           "type": "string",
           "default": "",
-          "description": "Required. The full path of the runtime's native library that validates, suggests and edits the configuration: xmip_core_operate.dll on Windows, libxmip_core_operate.so on Linux, libxmip_core_operate.dylib on macOS. cargo build leaves it in module/core/operation/operate/target/debug of the estate. The server looks for none on its own: empty, every validation says where to point it."
+          "description": "Required. The full path of the runtime's native library that validates, suggests and edits the configuration: xmip_core_operate.dll on Windows, libxmip_core_operate.so on Linux, libxmip_core_operate.dylib on macOS. cargo build leaves it in target/debug at the estate's root. The server looks for none on its own: empty, every validation says where to point it."
         }
       }
     }

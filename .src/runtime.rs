@@ -87,7 +87,7 @@ impl Runtime {
 
         // Load a copy, never the build output itself. A loaded library is
         // locked for as long as this process lives, and in development the
-        // path is the runtime's own target/debug — an editor left open would
+        // path is the estate's target/debug — an editor left open would
         // make the next `cargo build` fail on a locked file.
         sweep_copies();
         let copy = temporary_copy_path(path);

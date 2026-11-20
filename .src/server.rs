@@ -43,7 +43,7 @@ pub(crate) const REFUSED: i64 = -32002;
 pub const NOT_NAMED: &str = "no runtime library was named: set the setting xmip.runtime.library \
     to the full path of the runtime's native library — xmip_core_operate.dll on Windows, \
     libxmip_core_operate.so on Linux, libxmip_core_operate.dylib on macOS — which cargo build \
-    leaves in module/core/operation/operate/target/debug of the estate; or start the server with \
+    leaves in target/debug at the estate's root; or start the server with \
     --runtime <path>";
 
 /// The server's state between messages.

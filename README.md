@@ -35,8 +35,10 @@ The runtime library is the one the `--runtime <path>` flag names, which the
 extension passes from its `xmip.runtime.library` setting, required (the
 owner, 2026-10-22); with none named, every validation says where to point
 it — the full path of `xmip_core_operate.dll`, `libxmip_core_operate.so` or
-`libxmip_core_operate.dylib`, which `cargo build` in xmip-core-operate
-leaves in its `target/debug`. The server finds no library on its own: runtime
+`libxmip_core_operate.dylib`, which `cargo build` of xmip-core-operate
+leaves in `target/debug` at the estate's root, the one workspace's build
+directory, or under `CARGO_TARGET_DIR` where that is set (ADR-0016,
+amendment 2026-11-20). The server finds no library on its own: runtime
 discovery is one rule, the .NET surfaces' `RuntimeLibrary`, because a surface
 has to find the runtime before it can call anything in it, and the copy of
 that rule this server kept in Rust went on 2026-09-24 (ADR-0052, amendment of
@@ -272,9 +274,9 @@ service, never names — forwarding to the design format,
 The server: `cargo build`, then `cargo test`. The tests cover the
 diagnostics, the runtime loader, the protocol and the designer's layout
 and text edits; those that need the built runtime — the library
-`XMIP_RUNTIME_LIBRARY` names, else xmip-core-operate's in
-`../../operate/target/debug`, the estate's own build, found
-once in `.src/built.rs` — validate `../samples/cluster.xmip` (the cluster the
+`XMIP_RUNTIME_LIBRARY` names, else xmip-core-operate's where cargo built
+it in the same build directory, found above the test program by the
+estate's one rule, `file::built` (`.src/built.rs`) — validate `../samples/cluster.xmip` (the cluster the
 desktop GUI edits and starts a node of, read from the repository beside this
 one, never copied), ask every editing request of the test cluster's
 `cluster.xmip` (the estate's `test/cluster.xmip`, or the file `XMIP_TEST_CLUSTER`

@@ -1,7 +1,8 @@
 //! The runtime library the tests load, found once for every test that
 //! needs one: `XMIP_RUNTIME_LIBRARY` where it names a file — the variable the
 //! .NET surfaces' one rule reads too (ADR-0052) — else xmip-core-operate's
-//! library as `cargo build` leaves it, beside this crate's repository.
+//! library where cargo built it in this build directory, found above the
+//! test program (`file::built`, the estate's one rule).
 //! Absent when neither is there, which the asking test says and skips.
 
 use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
@@ -13,11 +14,11 @@ const VARIABLE: &str = "XMIP_RUNTIME_LIBRARY";
 /// The runtime library to test against, if one is built.
 pub fn runtime_library() -> Option<PathBuf> {
     let named = std::env::var_os(VARIABLE).map(PathBuf::from);
-    let path = named.filter(|path| path.is_file()).unwrap_or_else(|| {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../operate/target/debug")
-            .join(format!("{DLL_PREFIX}xmip_core_operate{DLL_SUFFIX}"))
-    });
+    let name = format!("{DLL_PREFIX}xmip_core_operate{DLL_SUFFIX}");
+    let path = named
+        .filter(|path| path.is_file())
+        .or_else(|| file::built::found(&name))
+        .unwrap_or_else(|| PathBuf::from(&name));
 
     if path.is_file() {
         Some(path)
