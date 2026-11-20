@@ -369,16 +369,13 @@ mod tests {
 
     #[test]
     fn a_file_that_is_not_a_library_is_refused_and_its_copy_removed() {
-        let path = std::env::temp_dir().join(format!(
-            "{COPY_PREFIX}{}-not-a-library.dll",
-            std::process::id()
-        ));
+        let folder = file::temporary::Folder::new("lsp-not-a-library");
+        let path = folder.join("not-a-library.dll");
         std::fs::write(&path, b"not a library").expect("writes");
 
         let reason = Runtime::load(&path).err().expect("refused");
 
         assert!(reason.contains("could not be loaded"), "{reason}");
-        std::fs::remove_file(&path).expect("removes");
     }
 
     #[test]

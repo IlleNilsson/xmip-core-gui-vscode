@@ -304,8 +304,7 @@ fn snippet(setting: &Value) -> String {
         Some("choice") => {
             let choices: Vec<&str> = setting["choices"]
                 .as_array()
-                .map(|all| all.iter().filter_map(Value::as_str).collect())
-                .unwrap_or_default();
+                .map_or_default(|all| all.iter().filter_map(Value::as_str).collect());
             format!("\"${{1|{}|}}\"", choices.join(","))
         }
         _ => format!("\"${{1:{placeholder}}}\""),
@@ -334,7 +333,7 @@ pub fn completion(catalogue: &Value, place: &Place) -> Vec<Value> {
             written,
         } => declaration(catalogue, technology)
             .and_then(|entry| entry["settings"].as_array())
-            .map(|settings| {
+            .map_or_default(|settings| {
                 settings
                     .iter()
                     .filter(|setting| applies(setting, side))
@@ -351,8 +350,7 @@ pub fn completion(catalogue: &Value, place: &Place) -> Vec<Value> {
                         })
                     })
                     .collect()
-            })
-            .unwrap_or_default(),
+            }),
         Place::Settings { .. } => Vec::new(),
     }
 }

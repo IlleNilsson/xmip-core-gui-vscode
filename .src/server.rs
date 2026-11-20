@@ -391,31 +391,24 @@ pub(crate) fn is_toml(uri: &str) -> bool {
 mod tests {
     use super::*;
     use audit_file::FileSink;
+    use file::temporary::Folder;
 
     const NOWHERE: &str = "Z:/no/such/xmip_core_operate.dll";
 
-    /// An audit into a directory of the test's own, so a test never writes
-    /// to the operating system's log. Numbered, because tests run at once
-    /// and one clearing another's directory sent a record to that log.
-    /// A directory of its own for `name`'s audit, empty.
-    fn audited(name: &str) -> PathBuf {
-        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-        let number = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let directory = std::env::temp_dir().join(format!(
-            "xmip-lsp-audit-{name}-{}-{number}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&directory);
-        directory
+    /// An audit into a folder of the test's own, so a test never writes to
+    /// the operating system's log, and the folder, which the test holds
+    /// while the audit writes.
+    fn audit(name: &str) -> (ProgramAudit, Folder) {
+        let folder = Folder::new(&format!("lsp-audit-{name}"));
+        let audit = ProgramAudit::new(NAME, Some(FileSink::new(&*folder)));
+        (audit, folder)
     }
 
-    fn audit(name: &str) -> ProgramAudit {
-        ProgramAudit::new(NAME, Some(FileSink::new(audited(name))))
-    }
-
-    /// A server whose runtime is nowhere, so every validation reports that.
-    fn server() -> Server {
-        Server::new(Some(PathBuf::from(NOWHERE)), audit("server"))
+    /// A server whose runtime is nowhere, so every validation reports that,
+    /// and the folder its audit writes in.
+    fn server() -> (Server, Folder) {
+        let (audit, folder) = audit("server");
+        (Server::new(Some(PathBuf::from(NOWHERE)), audit), folder)
     }
 
     fn handle(server: &mut Server, message: &Value) -> (Vec<Value>, Option<i32>) {
@@ -427,7 +420,7 @@ mod tests {
     #[test]
     fn initialize_answers_with_full_synchronization_and_the_server_name() {
         let (out, exit) = handle(
-            &mut server(),
+            &mut server().0,
             &json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
         );
 
@@ -443,10 +436,10 @@ mod tests {
 
     #[test]
     fn exit_after_shutdown_is_zero_and_without_it_is_one() {
-        let mut fresh = server();
+        let (mut fresh, _fresh) = server();
         assert_eq!(handle(&mut fresh, &json!({"method": "exit"})).1, Some(1));
 
-        let mut polite = server();
+        let (mut polite, _polite) = server();
         let (out, _) = handle(&mut polite, &json!({"id": 2, "method": "shutdown"}));
         assert_eq!(out[0]["result"], Value::Null);
         assert!(polite.is_shut_down());
@@ -455,7 +448,7 @@ mod tests {
 
     #[test]
     fn an_unknown_request_is_refused_and_an_unknown_notification_ignored() {
-        let mut target = server();
+        let (mut target, _audit) = server();
         let (out, _) = handle(
             &mut target,
             &json!({"id": 3, "method": "textDocument/formatting"}),
@@ -470,7 +463,7 @@ mod tests {
     #[test]
     fn opening_a_toml_document_without_a_runtime_publishes_the_reason_at_line_zero() {
         let (out, _) = handle(
-            &mut server(),
+            &mut server().0,
             &json!({"method": "textDocument/didOpen", "params": {"textDocument": {
                 "uri": "file:///c:/node/edge-01.xmip", "text": "[service]\n"}}}),
         );
@@ -490,7 +483,7 @@ mod tests {
 
     #[test]
     fn a_document_that_is_not_toml_is_held_and_never_reported_on() {
-        let mut target = server();
+        let (mut target, _audit) = server();
         let (out, _) = handle(
             &mut target,
             &json!({"method": "textDocument/didOpen", "params": {"textDocument": {
@@ -503,7 +496,7 @@ mod tests {
 
     #[test]
     fn change_and_save_republish_and_close_clears() {
-        let mut target = server();
+        let (mut target, _audit) = server();
         let uri = "file:///c:/node/edge-01.xmip";
         handle(
             &mut target,
@@ -542,7 +535,7 @@ mod tests {
     #[test]
     fn validate_without_text_or_an_open_document_is_invalid_params() {
         let (out, _) = handle(
-            &mut server(),
+            &mut server().0,
             &json!({"id": 4, "method": "xmip/validate", "params": {"textDocument": {
                 "uri": "file:///c:/node/none.xmip"}}}),
         );
@@ -553,7 +546,7 @@ mod tests {
     #[test]
     fn validate_with_text_and_no_runtime_says_the_runtime_is_unavailable() {
         let (out, _) = handle(
-            &mut server(),
+            &mut server().0,
             &json!({"id": 5, "method": "xmip/validate", "params": {"text": "[service]\n"}}),
         );
 
@@ -563,7 +556,8 @@ mod tests {
 
     #[test]
     fn a_server_told_no_runtime_says_so_and_looks_nowhere() {
-        let mut target = Server::new(None, audit("none"));
+        let (audit, _audit) = audit("none");
+        let mut target = Server::new(None, audit);
         let (out, _) = handle(
             &mut target,
             &json!({"id": 7, "method": "xmip/validate", "params": {"text": "[service]\n"}}),
@@ -577,7 +571,8 @@ mod tests {
     /// every validation makes is not a new failure each time.
     #[test]
     fn a_runtime_that_cannot_be_loaded_is_audited_once_per_reason() {
-        let sink = FileSink::new(audited("unloadable"));
+        let folder = Folder::new("lsp-audit-unloadable");
+        let sink = FileSink::new(&*folder);
         let audit = ProgramAudit::new(NAME, Some(sink.clone()));
         let mut target = Server::new(Some(PathBuf::from(NOWHERE)), audit);
         for id in 0..3 {
@@ -596,7 +591,6 @@ mod tests {
         let failure = format!("phase = \"{}\"", xcore::ExecutionPhase::Failure.word());
         assert!(text.contains(&failure), "{text}");
         assert!(text.contains("no runtime library at"), "{text}");
-        let _ = std::fs::remove_dir_all(file.parent().expect("a directory"));
     }
 
     #[test]
@@ -605,7 +599,8 @@ mod tests {
             return;
         };
 
-        let mut target = Server::new(Some(path), audit("built"));
+        let (audit, _audit) = audit("built");
+        let mut target = Server::new(Some(path), audit);
         let (out, _) = handle(
             &mut target,
             &json!({"id": 6, "method": "xmip/validate", "params": {"text": "[service]\n"}}),

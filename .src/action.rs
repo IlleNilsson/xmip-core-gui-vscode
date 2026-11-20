@@ -34,8 +34,7 @@ const ASK_RENAME: &str = "xmip.rename";
 pub fn at(model: &Model, uri: &str, offset: usize) -> Vec<Value> {
     let section = model
         .table_at(offset)
-        .map(|table| strings(&table["section"]))
-        .unwrap_or_default();
+        .map_or_default(|table| strings(&table["section"]));
     let mut actions = Vec::new();
     if let Some(entry) = model
         .owner(&section)
@@ -156,8 +155,7 @@ fn questions(model: &Model, section: &[String]) -> Vec<Value> {
     };
     let held = model
         .table(holder)
-        .map(|table| strings(&table["table"]))
-        .unwrap_or_default();
+        .map_or_default(|table| strings(&table["table"]));
     let table = [held, vec![list_key.clone()]].concat();
     model
         .keys_of(&table)

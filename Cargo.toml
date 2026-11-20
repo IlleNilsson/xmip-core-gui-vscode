@@ -46,11 +46,20 @@ xaudit = { package = "xmip-core-audit", git = "https://github.com/IlleNilsson/xm
 # What the server hands its audit as it starts: the file sink, and the
 # operating system's log for when audit cannot persist, the Windows Event
 # Log or the local syslog. Each log's crate is empty off its own platform,
-# so both are linked and each builds where it works.
+# so each is a dependency of its own platform alone, in the target tables
+# below (ADR-0062, amendment 2026-11-19).
 audit-file = { package = "xmip-core-audit-file", git = "https://github.com/IlleNilsson/xmip-core-audit-file", branch = "main" }
-audit-syslog = { package = "xmip-core-audit-syslog", git = "https://github.com/IlleNilsson/xmip-core-audit-syslog", branch = "main" }
-audit-windows-event-log = { package = "xmip-core-audit-windows-event-log", git = "https://github.com/IlleNilsson/xmip-core-audit-windows-event-log", branch = "main" }
 xcore ={ package = "xmip-core", git = "https://github.com/IlleNilsson/xmip-core", branch = "main" }
+
+[target.'cfg(windows)'.dependencies]
+audit-windows-event-log = { package = "xmip-core-audit-windows-event-log", git = "https://github.com/IlleNilsson/xmip-core-audit-windows-event-log", branch = "main" }
+
+[target.'cfg(unix)'.dependencies]
+audit-syslog = { package = "xmip-core-audit-syslog", git = "https://github.com/IlleNilsson/xmip-core-audit-syslog", branch = "main" }
+
+[dev-dependencies]
+# A test's own temporary folder (`file::temporary`); for the tests only.
+file = { package = "xmip-core-library-file", git = "https://github.com/IlleNilsson/xmip-core-library-file", branch = "main", features = ["test-support"] }
 
 [lints.rust]
 # deny, not forbid. The server crosses the C ABI in exactly one file,
